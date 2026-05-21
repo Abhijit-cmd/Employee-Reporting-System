@@ -161,7 +161,7 @@ export default function LoginPage() {
   const [remember,   setRemember]   = useState(false)
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
-
+  const [isRegister, setIsRegister] = useState(false)
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -240,6 +240,51 @@ export default function LoginPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
+              {isRegister && (
+  <>
+    <div className="login-field">
+      <label className="login-label">
+        Employee ID
+      </label>
+
+      <div className="login-input-wrap">
+        <input
+          className="login-input"
+          type="text"
+          placeholder="Enter employee ID"
+        />
+      </div>
+    </div>
+
+    <div className="login-field">
+      <label className="login-label">
+        Full Name
+      </label>
+
+      <div className="login-input-wrap">
+        <input
+          className="login-input"
+          type="text"
+          placeholder="Enter full name"
+        />
+      </div>
+    </div>
+
+    <div className="login-field">
+      <label className="login-label">
+        Phone Number
+      </label>
+
+      <div className="login-input-wrap">
+        <input
+          className="login-input"
+          type="text"
+          placeholder="Enter phone number"
+        />
+      </div>
+    </div>
+  </>
+)}
               {/* Email */}
               <div className="login-field">
                 <label className="login-label">Email Address</label>
@@ -302,15 +347,43 @@ export default function LoginPage() {
               {/* Submit */}
               <button className="login-submit" type="submit" disabled={loading}>
                 <IcoSignIn />
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading
+  ? isRegister
+    ? 'Registering...'
+    : 'Signing in...'
+  : isRegister
+    ? 'Register'
+    : 'Sign In'}
               </button>
             </form>
 
-            {/* Footer */}
-            <div className="login-footer">
-              Don't have an account?
-              <a href="mailto:admin@constromat.com">Contact Administrator</a>
-            </div>
+            {/* Footer */}<div className="login-footer">
+  {isRegister ? (
+    <>
+      Already have an account?
+
+      <button
+        type="button"
+        className="login-register-link"
+        onClick={() => setIsRegister(false)}
+      >
+        Login
+      </button>
+    </>
+  ) : (
+    <>
+      Don't have an account?
+
+      <button
+        type="button"
+        className="login-register-link"
+        onClick={() => setIsRegister(true)}
+      >
+        Register
+      </button>
+    </>
+  )}
+</div>
           </div>
         </div>
 

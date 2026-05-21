@@ -44,11 +44,10 @@ function initials(name: string) {
 const STATUS_STYLES: Record<ReportStatus, string> = {
   Submitted: 'rp-badge-submitted',
   Pending:   'rp-badge-pending',
-  Rejected:  'rp-badge-rejected',
   Draft:     'rp-badge-draft',
 }
 
-const STATUSES: Array<ReportStatus | 'All Status'> = ['All Status', 'Submitted', 'Pending', 'Rejected', 'Draft']
+const STATUSES: Array<ReportStatus | 'All Status'> = ['All Status', 'Submitted', 'Pending', 'Draft']
 const PAGE_SIZE = 8
 
 // ── Mini calendar ─────────────────────────────────────────────────────────────
@@ -176,7 +175,6 @@ function ReportViewModal({ report, onClose }: { report: Report; onClose: () => v
         </div>
         <div className="rp-view-body">
           <div className="rp-view-row"><span className="rp-view-label">Employee</span><span className="rp-view-val">{report.empName} ({report.empId})</span></div>
-          <div className="rp-view-row"><span className="rp-view-label">Report Title</span><span className="rp-view-val">{report.title}</span></div>
           <div className="rp-view-row"><span className="rp-view-label">Month</span><span className="rp-view-val">{report.month}</span></div>
           <div className="rp-view-row"><span className="rp-view-label">Submitted On</span><span className="rp-view-val">{report.submittedOn}</span></div>
           <div className="rp-view-row">
@@ -222,7 +220,7 @@ export default function ReportsPage({ onNavigate }: Props) {
   // Filter
   const filtered = reportStore.filter(r => {
     const q = search.toLowerCase()
-    const matchSearch = !q || r.empName.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.empId.toLowerCase().includes(q)
+    const matchSearch = !q || r.empName.toLowerCase().includes(q) ||  r.empId.toLowerCase().includes(q)
     const matchStatus = statusFilter === 'All Status' || r.status === statusFilter
 
     let matchDate = true
@@ -300,7 +298,6 @@ export default function ReportsPage({ onNavigate }: Props) {
             <thead className="rp-thead">
               <tr>
                 <th>Employee</th>
-                <th>Report Title</th>
                 <th>Month</th>
                 <th>Submitted On</th>
                 <th>Status</th>
@@ -310,7 +307,7 @@ export default function ReportsPage({ onNavigate }: Props) {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>
                     No reports found.
                   </td>
                 </tr>
@@ -325,7 +322,6 @@ export default function ReportsPage({ onNavigate }: Props) {
                       </div>
                     </div>
                   </td>
-                  <td className="rp-title-cell">{r.title}</td>
                   <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.month}</td>
                   <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.submittedOn}</td>
                   <td>

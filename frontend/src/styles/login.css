@@ -389,3 +389,15 @@
   .login-card { padding: 24px 16px; }
   .login-card-title { font-size: 19px; }
 }
+.login-register-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+.login-register-link:hover {
+  text-decoration: underline;
+}
