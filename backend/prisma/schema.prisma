@@ -3,11 +3,86 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+
+  employeeId   String?  @unique @map("employee_id")
+
+  name         String
+
+  email        String   @unique
+
+  password     String
+
+  role         String
+
+  phone        String?
+
+  status       String   @default("active")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  reports Report[]
+
+  @@map("user")
+  
+}
+enum Role {
+  admin
+  employee
+}
+
+enum Status {
+  active
+  inactive
+}
+
+model Report {
+
+  
+
+  customersRegistered    Int      @default(0) @map("customers_registered")
+
+  suppliersRegistered    Int      @default(0) @map("suppliers_registered")
+
+  newBrandProducts       Int      @default(0) @map("new_brand_products")
+
+  successStories         Int      @default(0) @map("success_stories")
+
+  websiteVisitors        Int      @default(0) @map("website_visitors")
+
+  customerChallenges     String?  @map("customer_challenges")
+
+  supplierChallenges     String?  @map("supplier_challenges")
+
+  logisticsChallenges    String?  @map("logistics_challenges")
+
+  financeChallenges      String?  @map("finance_challenges")
+
+  individualMetrics      String?  @map("individual_metrics")
+
+  ytdAchievement         String?  @map("ytd_achievement")
+
+  topAccomplishments  String?  @map("top_accomplishments")
+
+strengthsComments   String?  @map("strengths_comments")
+
+reportStatus        String   @default("pending") @map("report_status")
+
+createdAt           DateTime @default(now()) @map("created_at")
+
+user User @relation(fields: [userId], references: [id])
+
+@@map("reports")
+
 }
