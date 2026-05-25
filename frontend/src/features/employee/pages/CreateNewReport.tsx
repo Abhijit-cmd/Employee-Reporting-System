@@ -41,6 +41,69 @@ export default function CreateNewReport({ onBack }: Props) {
 
   const MAX = 1000
 
+  async function handleSubmitReport() {
+
+  try {
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      "http://localhost:5000/api/reports/create",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token || "",
+        },
+
+        body: JSON.stringify({
+
+          mmyyyy,
+          businessOwner,
+          preparedBy,
+          reviewedBy,
+
+          customerReg,
+          supplierReg,
+          productsAdded,
+          successStories,
+          siteVisits,
+
+          challenges,
+
+          salesBooking,
+          targetVsAchievement,
+
+          accomplishments,
+
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    console.log(data);
+
+    if (!response.ok) {
+
+      alert(data.message);
+
+      return;
+    }
+
+    alert("Report submitted successfully");
+
+  } catch (error) {
+
+    console.log(error);
+
+    alert("Server error");
+
+  }
+
+}
+
   return (
     <main className="page-content">
 
@@ -227,7 +290,7 @@ export default function CreateNewReport({ onBack }: Props) {
             <IconFileText />
             Save as Draft
           </button>
-          <button className="cnr-btn-submit" type="button">
+          <button className="cnr-btn-submit" type="button" onClick={handleSubmitReport}>
             <IconPlus />
             Submit Report
           </button>

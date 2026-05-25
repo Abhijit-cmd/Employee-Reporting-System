@@ -31,16 +31,22 @@ exports.registerUser = async (req, res) => {
     // HASH PASSWORD
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const roleId = role === "admin" ? 1 : 2;
+
     // CREATE USER
     const user = await prisma.user.create({
      data: {
-  employeeId,
-  name,
-  email,
-  password: hashedPassword,
-  phone,
-  role: role || "employee"
-}
+    employeeId: employeeId,
+    name: name,
+    phone: phone,
+    email: email,
+    password: hashedPassword,
+    role: {
+      connect: {
+        id: roleId,
+      },
+    },
+  },
     });
 
     res.status(201).json({
@@ -68,8 +74,11 @@ exports.loginUser = async (req, res) => {
     // FIND USER
     const user = await prisma.user.findUnique({
       where: {
-        email
-      }
+        email,
+      },
+      include: {
+        role: true,
+      },
     });
 
     if (!user) {

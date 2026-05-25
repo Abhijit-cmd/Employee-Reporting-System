@@ -24,7 +24,9 @@ model User {
 
   password     String
 
-  role         String
+  roleId Int @map("role_id")
+
+  role Role @relation(fields: [roleId], references: [id])
 
   phone        String?
 
@@ -33,13 +35,12 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
 
   reports Report[]
-
+  notifications Notification[]
+  targets Target[]
+  loginLogs LoginLog[]
+  
   @@map("user")
   
-}
-enum Role {
-  admin
-  employee
 }
 
 enum Status {
@@ -49,40 +50,145 @@ enum Status {
 
 model Report {
 
-  
+  id Int @id @default(autoincrement())
 
-  customersRegistered    Int      @default(0) @map("customers_registered")
+  userId Int @map("user_id")
 
-  suppliersRegistered    Int      @default(0) @map("suppliers_registered")
+  mmyyyy String
 
-  newBrandProducts       Int      @default(0) @map("new_brand_products")
+  businessOwner String
 
-  successStories         Int      @default(0) @map("success_stories")
+  preparedBy String
 
-  websiteVisitors        Int      @default(0) @map("website_visitors")
+  reviewedBy String
 
-  customerChallenges     String?  @map("customer_challenges")
+  customersRegistered Int @default(0)
 
-  supplierChallenges     String?  @map("supplier_challenges")
+  suppliersRegistered Int @default(0)
 
-  logisticsChallenges    String?  @map("logistics_challenges")
+  newBrandProducts Int @default(0)
 
-  financeChallenges      String?  @map("finance_challenges")
+  successStories Int @default(0)
 
-  individualMetrics      String?  @map("individual_metrics")
+  websiteVisitors Int @default(0)
 
-  ytdAchievement         String?  @map("ytd_achievement")
+  challenges String?
 
-  topAccomplishments  String?  @map("top_accomplishments")
+  salesBooking String?
 
-strengthsComments   String?  @map("strengths_comments")
+  targetVsAchievement String?
 
-reportStatus        String   @default("pending") @map("report_status")
+  accomplishments String?
 
-createdAt           DateTime @default(now()) @map("created_at")
+  reportStatusId Int @map("report_status_id")
 
-user User @relation(fields: [userId], references: [id])
+  reportStatus ReportStatus @relation(fields: [reportStatusId], references: [id])
 
-@@map("reports")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("reports")
+}
+model Role {
+
+  id Int @id @default(autoincrement())
+
+  roleName String @unique @map("role_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("roles")
+
+
+}
+
+model ReportStatus {
+
+  id Int @id @default(autoincrement())
+
+  statusName String @unique @map("status_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reports Report[]
+
+  @@map("report_status")
+
+}
+
+model Notification {
+
+  id Int @id @default(autoincrement())
+
+  userId Int @map("user_id")
+
+  title String
+
+  message String
+
+  notificationType String @map("notification_type")
+
+  isRead Boolean @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+
+}
+
+model Target {
+
+  id Int @id @default(autoincrement())
+
+  employeeId Int @map("employee_id")
+
+  targetTitle String @map("target_title")
+
+  description String?
+
+  targetValue Float @map("target_value")
+
+  achievedValue Float @default(0) @map("achieved_value")
+
+  targetMonth String @map("target_month")
+
+  targetYear Int @map("target_year")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  employee User @relation(fields: [employeeId], references: [id])
+
+  @@map("targets")
+
+}
+
+model LoginLog {
+
+  id Int @id @default(autoincrement())
+
+  userId Int @map("user_id")
+
+  loginTime DateTime @default(now()) @map("login_time")
+
+  logoutTime DateTime? @map("logout_time")
+
+  ipAddress String? @map("ip_address")
+
+  deviceInfo String? @map("device_info")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("login_logs")
 
 }

@@ -1,114 +1,77 @@
-const prisma = require("../prisma/prismaClient");
+const prisma =
+  require("../prisma/prismaClient");
 
-
-// CREATE REPORT
-
-exports.createReport = async (req, res) => {
+exports.createReport = async (
+  req,
+  res
+) => {
 
   try {
 
     const report = await prisma.report.create({
 
-      data: {
+  data: {
 
-        userId: req.body.userId,
+    mmyyyy: req.body.mmyyyy,
 
-        reportMonth: req.body.reportMonth,
+    businessOwner: req.body.businessOwner,
 
-        reportYear: new Date(req.body.reportYear),
+    preparedBy: req.body.preparedBy,
 
-        customersRegistered:
-        req.body.customersRegistered,
+    reviewedBy: req.body.reviewedBy,
 
-        suppliersRegistered:
-        req.body.suppliersRegistered,
+    customersRegistered: Number(req.body.customerReg),
 
-        newBrandProducts:
-        req.body.newBrandProducts,
+    suppliersRegistered: Number(req.body.supplierReg),
 
-        successStories:
-        req.body.successStories,
+    newBrandProducts: Number(req.body.productsAdded),
 
-        websiteVisitors:
-        req.body.websiteVisitors,
+    successStories: Number(req.body.successStories),
 
-        customerChallenges:
-        req.body.customerChallenges,
+    websiteVisitors: Number(req.body.siteVisits),
 
-        supplierChallenges:
-        req.body.supplierChallenges,
+    challenges: req.body.challenges,
 
-        logisticsChallenges:
-        req.body.logisticsChallenges,
+    salesBooking: req.body.salesBooking,
 
-        financeChallenges:
-        req.body.financeChallenges,
+    targetVsAchievement:
+      req.body.targetVsAchievement,
 
-        individualMetrics:
-        req.body.individualMetrics,
+    accomplishments:
+      req.body.accomplishments,
 
-        ytdAchievement:
-        req.body.ytdAchievement,
-
-        targetVsAchievement:
-        req.body.targetVsAchievement,
-
-        topAccomplishments:
-        req.body.topAccomplishments,
-
-        strengthsComments:
-        req.body.strengthsComments
+    reportStatus: {
+      connect: {
+        id: 1
 
       }
+    },
 
-    });
+    user: {
+      connect: {
+        id: req.user.id
+      }
+    }
+
+  },
+
+});
 
     res.status(201).json({
-
-      message: "Report submitted successfully",
-
-      report
-
+      message:
+        "Report created successfully",
+      report,
     });
 
   } catch (error) {
 
-    res.status(500).json({
-
-      message: error.message
-
-    });
-
-  }
-
-};
-
-
-
-
-// GET ALL REPORTS
-
-exports.getReports = async (req, res) => {
-
-  try {
-
-    const reports = await prisma.report.findMany({
-
-      include: {
-        user: true
-      }
-
-    });
-
-    res.status(200).json(reports);
-
-  } catch (error) {
+    console.log(error);
 
     res.status(500).json({
+    message: error.message,
+    error,
+  });
 
-      message: error.message
-
-    });
 
   }
 

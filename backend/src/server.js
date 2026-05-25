@@ -8,7 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
+app.get("/", (req, res) => {
+  res.send("Backend Connected Successfully");
+});
 // ROUTES
 const authRoutes = require("./routes/auth.routes");
 
