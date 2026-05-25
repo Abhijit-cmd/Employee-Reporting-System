@@ -216,28 +216,52 @@ export default function LoginPage() {
             <div className="login-card-title">Login to Your Account</div>
             <div className="login-card-sub">Choose your role and sign in to continue</div>
 
-            {/* Role selector */}
-            <div className="login-roles">
-              <button
-                type="button"
-                className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
-                onClick={() => { setRole('admin'); setError('') }}
-              >
-                <div className="login-role-icon"><IcoShield /></div>
-                <div className="login-role-name">Admin</div>
-                <div className="login-role-sub">Super Admin Access</div>
-              </button>
-              <button
-                type="button"
-                className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
-                onClick={() => { setRole('employee'); setError('') }}
-              >
-                <div className="login-role-icon"><IcoUser /></div>
-                <div className="login-role-name">Employee</div>
-                <div className="login-role-sub">Employee Access</div>
-              </button>
-            </div>
+           {/* Role selector */}
+{!isRegister && (
+  <div className="login-roles">
+    <button
+      type="button"
+      className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
+      onClick={() => {
+        setRole('admin')
+        setError('')
+      }}
+    >
+      <div className="login-role-icon">
+        <IcoShield />
+      </div>
 
+      <div className="login-role-name">
+        Admin
+      </div>
+
+      <div className="login-role-sub">
+        Super Admin Access
+      </div>
+    </button>
+
+    <button
+      type="button"
+      className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
+      onClick={() => {
+        setRole('employee')
+        setError('')
+      }}
+    >
+      <div className="login-role-icon">
+        <IcoUser />
+      </div>
+
+      <div className="login-role-name">
+        Employee
+      </div>
+
+      <div className="login-role-sub">
+        Employee Access
+      </div>
+    </button>
+  </div>
+)}
             {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
               {isRegister && (
@@ -357,7 +381,9 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Footer */}<div className="login-footer">
+            {/* Footer */}{/* Footer */}
+<div className="login-footer">
+
   {isRegister ? (
     <>
       Already have an account?
@@ -372,17 +398,24 @@ export default function LoginPage() {
     </>
   ) : (
     <>
-      Don't have an account?
+      {role === 'employee' && (
+        <>
+          Don't have an account?
 
-      <button
-        type="button"
-        className="login-register-link"
-        onClick={() => setIsRegister(true)}
-      >
-        Register
-      </button>
+          <button
+            type="button"
+            className="login-register-link"
+            onClick={() => {
+              setIsRegister(true)
+            }}
+          >
+            Register
+          </button>
+        </>
+      )}
     </>
   )}
+
 </div>
           </div>
         </div>
