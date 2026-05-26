@@ -41,7 +41,9 @@ export default function AdminSidebar({ active, onNav }: Props) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">logo</div>
+      <div className="sidebar-logo">
+  <img src="/logo.png" alt="Logo" />
+</div>
       <nav className="sidebar-nav">
         {sections.map(section => {
           const items = navItems.filter(n => n.section === section)
@@ -69,8 +71,8 @@ export default function AdminSidebar({ active, onNav }: Props) {
         <div className="sidebar-help">
           <div className="sidebar-help-icon"><IconHelpCircle /></div>
           <div className="sidebar-help-text">
-            <strong>Need Help?</strong>
-            <span>Contact Support</span>
+            <strong>Version 8.0.13</strong>
+          
           </div>
         </div>
       </div>

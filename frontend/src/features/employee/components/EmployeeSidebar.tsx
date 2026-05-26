@@ -55,8 +55,7 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
         <div className="sidebar-help">
           <div className="sidebar-help-icon"><IconHelpCircle /></div>
           <div className="sidebar-help-text">
-            <strong>Need Help?</strong>
-            <span>Contact Support</span>
+            <strong>Version 8.0.13</strong>
           </div>
         </div>
       </div>

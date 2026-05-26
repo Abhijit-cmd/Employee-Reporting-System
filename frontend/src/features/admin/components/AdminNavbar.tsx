@@ -137,14 +137,20 @@ export default function AdminNavbar({ page, onNavigate }: Props) {
           <span className="notif-dot" />
         </button>
       </div>
-      <div className="navbar-profile">
-        <div className="avatar">A</div>
-        <div className="profile-info">
-          <strong>Admin User</strong>
-          <span>Super Admin</span>
-        </div>
-        <IconChevronDown className="profile-chevron" />
-      </div>
+      <div
+  className="navbar-profile"
+  onClick={() => onNavigate('settings')}
+  style={{ cursor: 'pointer' }}
+>
+  <div className="avatar">A</div>
+
+  <div className="profile-info">
+    <strong>Admin User</strong>
+    <span>Super Admin</span>
+  </div>
+
+  <IconChevronDown className="profile-chevron" />
+</div>
     </header>
   )
 }
