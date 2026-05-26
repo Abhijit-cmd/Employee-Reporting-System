@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Toggle, SectionHeader, ThemeModeCard } from '../../employee/pages/SettingsPage'
+import { Toggle, SectionHeader, ThemeModeCard } from '../../shared/settingsComponents'
 
 interface Props { onBack: () => void }
 
