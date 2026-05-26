@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { employeeStore } from '../../../store/employeeStore'
 import type { Employee } from '../../../store/employeeStore'
 
@@ -159,12 +159,48 @@ function AddEmployeeModal({ onClose, onAdd, existingCount }: ModalProps) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function EmployeesPage({ onNavigate }: Props) {
-  const [employees, setEmployees] = useState<Employee[]>([...employeeStore])
+  const [employees, setEmployees] = useState<any[]>([])
   const [search,    setSearch]    = useState('')
   const [deptFilter, setDeptFilter] = useState('All Departments')
   const [statusFilter, setStatusFilter] = useState('All Status')
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+
+  async function fetchEmployees() {
+
+    try {
+
+      const token =
+        localStorage.getItem("token");
+
+      const response =
+        await fetch(
+          "http://localhost:5000/api/auth/employees",
+          {
+            headers: {
+              Authorization:
+                token || "",
+            },
+          }
+        );
+
+      const data =
+        await response.json();
+
+      setEmployees(data);
+
+    } catch (error) {
+
+      console.log(error);
+
+    }
+  }
+
+  fetchEmployees();
+
+}, []);
 
   // Sync additions back to the shared store so KpiCards picks them up
   function handleAdd(emp: Employee) {
@@ -257,22 +293,21 @@ export default function EmployeesPage({ onNavigate }: Props) {
                 <th>Employee ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Department</th>
                 <th>Status</th>
                 <th>Joined On</th>
-                <th>Actions</th>
+              
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
                     No employees found.
                   </td>
                 </tr>
               ) : rows.map(emp => (
-                <tr key={emp.id}>
-                  <td style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{emp.id}</td>
+                <tr key={emp.employeeId}>
+                  <td style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{emp.employeeId}</td>
                   <td>
                     <div className="emp-cell">
                       <div className="emp-avatar" style={{ background: '#e0e7ff', color: '#6366f1' }}>
@@ -282,28 +317,16 @@ export default function EmployeesPage({ onNavigate }: Props) {
                     </div>
                   </td>
                   <td style={{ color: 'var(--text-muted)' }}>{emp.email}</td>
-                  <td>{emp.department}</td>
+                 
                   <td>
                     <span className={`status-badge ${emp.status === 'Active' ? 'submitted' : 'draft'}`}>
-                      {emp.status}
+                      Active
                     </span>
                   </td>
-                  <td style={{ color: 'var(--text-muted)' }}>{emp.joinedOn}</td>
-                  <td>
-                    <div className="emp-row-actions">
-                      <button className="action-btn emp-edit-btn" type="button" aria-label="Edit employee">
-                        <IcoEdit />
-                      </button>
-                      <button
-                        className="action-btn emp-delete-btn"
-                        type="button"
-                        aria-label="Delete employee"
-                        onClick={() => handleDelete(emp.id)}
-                      >
-                        <IcoTrash />
-                      </button>
-                    </div>
-                  </td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {new Date(emp.createdAt)
+                        .toLocaleDateString()}
+                    </td>                  
                 </tr>
               ))}
             </tbody>

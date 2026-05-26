@@ -22,10 +22,15 @@ router.post(
 
 
 // // GET ALL REPORTS
-// router.get(
-//   "/",
-//   authMiddleware,
-//   getReports
-// );
+router.get(
+  "/",
+  authMiddleware,
+  reportController.getReports
+);
 
+router.get(
+  "/my-reports",
+  authMiddleware,
+  reportController.getMyReports
+);
 module.exports = router;

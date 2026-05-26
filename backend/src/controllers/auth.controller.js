@@ -125,3 +125,70 @@ exports.loginUser = async (req, res) => {
 
   }
 };
+
+exports.getProfile = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const user =
+      await prisma.user.findUnique({
+
+        where: {
+          id: req.user.id,
+        },
+
+        include: {
+          role: true,
+        },
+
+      });
+
+    res.status(200).json(user);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message,
+    });
+
+  }
+
+};
+
+exports.getAllEmployees = async (
+  req,
+  res
+) => {
+
+  try {
+
+  const employees =
+  await prisma.user.findMany({
+
+    where: {
+      role: {
+        roleName: "Employee",
+      },
+    },
+
+    include: {
+      role: true,
+    },
+
+  });
+    res.status(200).json(
+      employees
+    );
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message,
+    });
+
+  }
+
+};
