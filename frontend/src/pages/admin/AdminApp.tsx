@@ -4,6 +4,7 @@ import AdminNavbar from '../../features/admin/components/AdminNavbar'
 import AdminDashboard from '../../features/admin/pages/AdminDashboard'
 import EmployeesPage from '../../features/admin/pages/EmployeesPage'
 import ReportsPage from '../../features/admin/pages/ReportsPage'
+import AdminSettingsPage from '../../features/admin/pages/AdminSettingsPage'
 
 function AdminPageContent({ page, onNavigate }: { page: string; onNavigate: (p: string) => void }) {
   switch (page) {
@@ -13,6 +14,8 @@ function AdminPageContent({ page, onNavigate }: { page: string; onNavigate: (p: 
     case 'pending-reports':
     case 'export-reports':
       return <ReportsPage onNavigate={onNavigate} />
+    case 'settings':
+      return <AdminSettingsPage onBack={() => onNavigate('dashboard')} />
     default:
       return <AdminDashboard onNavigate={onNavigate} />
   }

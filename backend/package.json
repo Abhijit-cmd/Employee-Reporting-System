@@ -10,7 +10,6 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",
