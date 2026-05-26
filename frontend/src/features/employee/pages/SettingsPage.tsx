@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useEffect } from 'react'
 
 interface Props {
   onBack: () => void
@@ -210,12 +211,51 @@ export default function SettingsPage({ onBack }: Props) {
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null)
 
   // Profile
-  const [fullName,    setFullName]    = useState('Anil')
-  const [email,       setEmail]       = useState('anil.kumar@constromat.com')
-  const [phone,       setPhone]       = useState('+91 98765 43210')
-  const [empId,       setEmpId]       = useState('CM12345')
-  const [designation, setDesignation] = useState('Sales Executive')
+ const [fullName, setFullName] = useState('')
+const [email, setEmail] = useState('')
+const [phone, setPhone] = useState('')
+const [empId, setEmpId] = useState('')
 
+
+useEffect(() => {
+
+    async function fetchProfile() {
+
+      try {
+
+        const token =
+          localStorage.getItem("token");
+
+        const response = await fetch(
+          "http://localhost:5000/api/auth/profile",
+          {
+            headers: {
+              Authorization: token || "",
+            },
+          }
+        );
+
+        const data =
+          await response.json();
+
+        setFullName(data.name || "");
+        setEmail(data.email || "");
+        setPhone(data.phone || "");
+        setEmpId(data.employeeId || "");
+        
+
+      } catch (error) {
+
+        console.log(error);
+
+      }
+    }
+
+    fetchProfile();
+
+  }, []);
+
+  // rest of component
   // Password
   const [currentPw, setCurrentPw] = useState('')
   const [newPw,     setNewPw]     = useState('')
@@ -300,10 +340,7 @@ export default function SettingsPage({ onBack }: Props) {
                   <label className="st-label">Employee ID</label>
                   <input className="st-input" type="text" value={empId} onChange={e => setEmpId(e.target.value)} />
                 </div>
-                <div className="st-field st-field-full">
-                  <label className="st-label">Designation</label>
-                  <input className="st-input" type="text" value={designation} onChange={e => setDesignation(e.target.value)} />
-                </div>
+                
               </div>
               <div className="st-card-action-row">
                 <button className="st-btn-outline" type="button">

@@ -1,6 +1,8 @@
 const prisma =
   require("../prisma/prismaClient");
 
+
+// CREATE REPORT
 exports.createReport = async (
   req,
   res
@@ -8,54 +10,75 @@ exports.createReport = async (
 
   try {
 
-    const report = await prisma.report.create({
+    const report =
+      await prisma.report.create({
 
-  data: {
+        data: {
 
-    mmyyyy: req.body.mmyyyy,
+          mmyyyy:
+            req.body.mmyyyy,
 
-    businessOwner: req.body.businessOwner,
+          businessOwner:
+            req.body.businessOwner,
 
-    preparedBy: req.body.preparedBy,
+          preparedBy:
+            req.body.preparedBy,
 
-    reviewedBy: req.body.reviewedBy,
+          reviewedBy:
+            req.body.reviewedBy,
 
-    customersRegistered: Number(req.body.customerReg),
+          customersRegistered:
+            Number(
+              req.body.customersRegistered
+            ),
 
-    suppliersRegistered: Number(req.body.supplierReg),
+          suppliersRegistered:
+            Number(
+              req.body.suppliersRegistered
+            ),
 
-    newBrandProducts: Number(req.body.productsAdded),
+          newBrandProducts:
+            Number(
+              req.body.newBrandProducts
+            ),
 
-    successStories: Number(req.body.successStories),
+          successStories:
+            Number(
+              req.body.successStories
+            ),
 
-    websiteVisitors: Number(req.body.siteVisits),
+          websiteVisitors:
+            Number(
+              req.body.websiteVisitors
+            ),
 
-    challenges: req.body.challenges,
+          challenges:
+            req.body.challenges,
 
-    salesBooking: req.body.salesBooking,
+          salesBooking:
+            req.body.salesBooking,
 
-    targetVsAchievement:
-      req.body.targetVsAchievement,
+          targetVsAchievement:
+            req.body.targetVsAchievement,
 
-    accomplishments:
-      req.body.accomplishments,
+          accomplishments:
+            req.body.accomplishments,
 
-    reportStatus: {
-      connect: {
-        id: 1
+          user: {
+            connect: {
+              id: req.user.id,
+            },
+          },
 
-      }
-    },
+          reportStatus: {
+            connect: {
+              id: 2,
+            },
+          },
 
-    user: {
-      connect: {
-        id: req.user.id
-      }
-    }
+        },
 
-  },
-
-});
+      });
 
     res.status(201).json({
       message:
@@ -68,10 +91,92 @@ exports.createReport = async (
     console.log(error);
 
     res.status(500).json({
-    message: error.message,
-    error,
-  });
+      message: "Server error",
+    });
 
+  }
+
+};
+
+
+// GET REPORTS
+exports.getReports = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const reports =
+      await prisma.report.findMany({
+
+        include: {
+
+          user: true,
+
+          reportStatus: true,
+
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+      });
+
+    res.status(200).json(
+      reports
+    );
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+
+  }
+
+};
+
+exports.getMyReports = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const reports =
+      await prisma.report.findMany({
+
+        where: {
+          userId: req.user.id,
+        },
+
+        include: {
+
+          reportStatus: true,
+
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+      });
+
+    res.status(200).json(
+      reports
+    );
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
 
   }
 

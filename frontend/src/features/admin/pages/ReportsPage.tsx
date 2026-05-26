@@ -208,17 +208,73 @@ function MoreMenu({ onView, onDownload, onClose }: { onView: () => void; onDownl
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-export default function ReportsPage({ onNavigate }: Props) {
-  const [search,     setSearch]     = useState('')
-  const [startDate,  setStartDate]  = useState('')
-  const [endDate,    setEndDate]    = useState('')
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'All Status'>('All Status')
-  const [page,       setPage]       = useState(1)
-  const [viewReport, setViewReport] = useState<Report | null>(null)
-  const [openMore,   setOpenMore]   = useState<number | null>(null)
+
+
+  export default function ReportsPage({ onNavigate }: Props) {
+
+  const [search, setSearch] =
+    useState('')
+
+  const [startDate, setStartDate] =
+    useState('')
+
+  const [endDate, setEndDate] =
+    useState('')
+
+  const [statusFilter, setStatusFilter] =
+    useState('All Status')
+
+  const [page, setPage] =
+    useState(1)
+
+  const [viewReport, setViewReport] =
+    useState<any | null>(null)
+
+  const [openMore, setOpenMore] =
+    useState<number | null>(null)
+
+  // ADD THIS
+  const [reports, setReports] =
+    useState<any[]>([])
+
+    useEffect(() => {
+
+  async function fetchReports() {
+
+    try {
+
+      const token =
+        localStorage.getItem("token");
+
+      const response =
+        await fetch(
+          "http://localhost:5000/api/reports",
+          {
+            headers: {
+              Authorization:
+                token || "",
+            },
+          }
+        );
+
+      const data =
+        await response.json();
+
+      setReports(data);
+
+    } catch (error) {
+
+      console.log(error);
+
+    }
+  }
+
+  fetchReports();
+
+}, []);
 
   // Filter
-  const filtered = reportStore.filter(r => {
+  const filtered = reports.filter(r => {
     const q = search.toLowerCase()
     const matchSearch = !q || r.empName.toLowerCase().includes(q) ||  r.empId.toLowerCase().includes(q)
     const matchStatus = statusFilter === 'All Status' || r.status === statusFilter
@@ -315,17 +371,21 @@ export default function ReportsPage({ onNavigate }: Props) {
                 <tr key={r.id}>
                   <td>
                     <div className="emp-cell">
-                      <div className="emp-avatar rp-avatar">{initials(r.empName)}</div>
+                      <div className="emp-avatar rp-avatar">{initials(r.user?.name || "")}</div>
                       <div>
-                        <div className="rp-emp-name">{r.empName}</div>
-                        <div className="rp-emp-id">{r.empId}</div>
+                        <div className="rp-emp-name">{r.user?.name}</div>
+                        <div className="rp-emp-id">{r.user?.employeeId}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.month}</td>
-                  <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.submittedOn}</td>
+                  <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.mmyyyy}</td>
+                  <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {new Date(r.createdAt) .toLocaleString()}
+                  </td>
                   <td>
-                    <span className={`status-badge rp-badge ${STATUS_STYLES[r.status]}`}>{r.status}</span>
+                    <span className={`status-badge rp-badge ${STATUS_STYLES[
+  r.reportStatus?.statusName as ReportStatus
+]}`}>{r.reportStatus?.statusName}</span>
                   </td>
                   <td>
                     <div className="rp-actions">

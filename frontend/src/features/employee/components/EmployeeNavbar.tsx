@@ -15,6 +15,13 @@ const pageTitles: Record<string, { title: string; sub: string }> = {
   settings:          { title: 'Settings',            sub: 'Manage your account preferences and system settings.' },
 }
 
+const user =
+  JSON.parse(
+    localStorage.getItem("user") || "{}"
+  )
+
+  
+
 export default function EmployeeNavbar({ page, onNavigate }: Props) {
   const meta = pageTitles[page] ?? pageTitles['home']
 
@@ -49,10 +56,10 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
         onClick={() => onNavigate('settings')}
         aria-label="Open settings"
       >
-        <div className="avatar" style={{ background: '#7c3aed' }}>A</div>
+        <div className="avatar" style={{ background: '#7c3aed' }}>{user.name?.charAt(0)}</div>
         <div className="profile-info">
-          <strong>Anil</strong>
-          <span>Sales Executive</span>
+          <strong>{user.name}</strong>
+          <span>{user.employeeId}</span>
         </div>
         <IconChevronDown className="profile-chevron" />
       </button>
