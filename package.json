@@ -1,0 +1,39 @@
+{
+  "name": "employee-reporting-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "nodemon src/server.js",
+    "dev:client": "cd client && npm run dev",
+    "start": "node src/server.js",
+    "install:all": "npm install && cd client && npm install",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.3",
+    "pdfkit": "^0.18.0",
+    "prisma": "^6.19.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Abhijit-cmd/Employee-Reporting-System.git"
+  },
+  "license": "ISC"
+}
