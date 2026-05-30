@@ -5,8 +5,16 @@ interface Props {
   onNavigate: (page: string) => void
 }
 
+function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}')
+  } catch {
+    return {}
+  }
+}
+
 const pageTitles: Record<string, { title: string; sub: string }> = {
-  home:              { title: 'Employee Dashboard', sub: "Welcome back, Anil! Here's your overview." },
+  home:              { title: 'Employee Dashboard', sub: "Welcome back! Here's your overview." },
   'create-report':   { title: 'Create New Report',  sub: 'Home / Create New Report' },
   'monthly-reports': { title: 'Monthly Reports',    sub: 'View all your monthly reports' },
   achievements:      { title: 'Achievements',        sub: 'Your achievements and milestones' },
@@ -15,15 +23,10 @@ const pageTitles: Record<string, { title: string; sub: string }> = {
   settings:          { title: 'Settings',            sub: 'Manage your account preferences and system settings.' },
 }
 
-const user =
-  JSON.parse(
-    localStorage.getItem("user") || "{}"
-  )
-
-  
-
 export default function EmployeeNavbar({ page, onNavigate }: Props) {
+  const user = getUser()
   const meta = pageTitles[page] ?? pageTitles['home']
+  const initial = user.name ? user.name.charAt(0).toUpperCase() : 'E'
 
   return (
     <header className="navbar">
@@ -49,17 +52,16 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
         </button>
       </div>
 
-      {/* Clicking the profile navigates to settings */}
       <button
         className="navbar-profile"
         type="button"
         onClick={() => onNavigate('settings')}
         aria-label="Open settings"
       >
-        <div className="avatar" style={{ background: '#7c3aed' }}>{user.name?.charAt(0)}</div>
+        <div className="avatar" style={{ background: '#7c3aed' }}>{initial}</div>
         <div className="profile-info">
-          <strong>{user.name}</strong>
-          <span>{user.employeeId}</span>
+          <strong>{user.name || 'Employee'}</strong>
+          <span>{user.employeeId || ''}</span>
         </div>
         <IconChevronDown className="profile-chevron" />
       </button>

@@ -27,15 +27,22 @@ function IcoSave() {
 }
 
 // ── Admin Settings ────────────────────────────────────────────────────────────
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+}
+
 export default function AdminSettingsPage({ onBack }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  const stored = getStoredUser()
 
   // Profile
-  const [fullName, setFullName] = useState('Admin User')
-  const [email,    setEmail]    = useState('admin@constromat.com')
-  const [phone,    setPhone]    = useState('+91 99999 00000')
-  const [adminId,  setAdminId]  = useState('ADM001')
+  const [fullName, setFullName] = useState(stored.name  || '')
+  const [email,    setEmail]    = useState(stored.email  || '')
+  const [phone,    setPhone]    = useState(stored.phone  || '')
+  const [adminId,  setAdminId]  = useState(stored.employeeId || '')
 
   // Notifications
   const [notifications, setNotifications] = useState(true)
@@ -146,7 +153,18 @@ export default function AdminSettingsPage({ onBack }: Props) {
         <button className="cnr-btn-back" type="button" onClick={onBack}><IcoArrowLeft /> Back to Dashboard</button>
         <div className="cnr-footer-right">
           <button className="cnr-btn-draft" type="button" onClick={onBack}>Cancel</button>
-          <button className="cnr-btn-submit" type="button"><IcoSave /> Save Settings</button>
+          <button
+            className="cnr-btn-submit"
+            type="button"
+            onClick={() => {
+              const updated = { ...getStoredUser(), name: fullName, email, phone, employeeId: adminId }
+              localStorage.setItem('user', JSON.stringify(updated))
+              setSaved(true)
+              setTimeout(() => setSaved(false), 2500)
+            }}
+          >
+            <IcoSave /> {saved ? 'Saved!' : 'Save Settings'}
+          </button>
         </div>
       </div>
 

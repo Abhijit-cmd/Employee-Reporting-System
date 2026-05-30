@@ -23,11 +23,11 @@ export default function CreateNewReport({ onBack }: Props) {
   const [reviewedBy, setReviewedBy]   = useState('')
 
   // Card 1 — metrics
-  const [customerReg, setCustomerReg]   = useState('')
-  const [supplierReg, setSupplierReg]   = useState('')
-  const [productsAdded, setProductsAdded] = useState('')
-  const [successStories, setSuccessStories] = useState('')
-  const [siteVisits, setSiteVisits]     = useState('')
+  const [customersRegistered, setCustomersRegistered] = useState('')
+  const [suppliersRegistered, setSuppliersRegistered] = useState('')
+  const [newBrandProducts,   setNewBrandProducts]    = useState('')
+  const [successStories,     setSuccessStories]      = useState('')
+  const [websiteVisitors,    setWebsiteVisitors]     = useState('')
 
   // Card 2 — challenges
   const [challenges, setChallenges]     = useState('')
@@ -39,70 +39,61 @@ export default function CreateNewReport({ onBack }: Props) {
   // Card 4 — accomplishments
   const [accomplishments, setAccomplishments] = useState('')
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError,  setSubmitError]  = useState('')
+  const [submitOk,     setSubmitOk]     = useState(false)
+
   const MAX = 1000
 
   async function handleSubmitReport() {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    setSubmitError('')
+    setSubmitOk(false)
 
-  try {
+    try {
+      const token = localStorage.getItem('token')
 
-    const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/reports/create`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+          body: JSON.stringify({
+            mmyyyy,
+            businessOwner,
+            preparedBy,
+            reviewedBy,
+            customersRegistered,
+            suppliersRegistered,
+            newBrandProducts,
+            successStories,
+            websiteVisitors,
+            challenges,
+            salesBooking,
+            targetVsAchievement,
+            accomplishments,
+          }),
+        }
+      )
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/reports/create`,
-      {
-        method: "POST",
+      const data = await response.json()
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token || "",
-        },
-
-        body: JSON.stringify({
-
-          mmyyyy,
-          businessOwner,
-          preparedBy,
-          reviewedBy,
-
-          customerReg,
-          supplierReg,
-          productsAdded,
-          successStories,
-          siteVisits,
-
-          challenges,
-
-          salesBooking,
-          targetVsAchievement,
-
-          accomplishments,
-
-        }),
+      if (!response.ok) {
+        setSubmitError(data.message || 'Submission failed')
+        return
       }
-    );
 
-    const data = await response.json();
-
-    console.log(data);
-
-    if (!response.ok) {
-
-      alert(data.message);
-
-      return;
+      setSubmitOk(true)
+    } catch {
+      setSubmitError('Server error — please try again')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    alert("Report submitted successfully");
-
-  } catch (error) {
-
-    console.log(error);
-
-    alert("Server error");
-
   }
-
-}
 
   return (
     <main className="page-content">
@@ -176,11 +167,11 @@ export default function CreateNewReport({ onBack }: Props) {
           </div>
           <div className="cnr-card-body">
             {[
-              { label: 'No of Customer Registration :', req: true,  val: customerReg,    set: setCustomerReg },
-              { label: 'No of Supplier Registration :', req: true,  val: supplierReg,    set: setSupplierReg },
-              { label: 'Name of Products /Brand added :', req: true, val: productsAdded, set: setProductsAdded },
-              { label: 'New Success Stories :',          req: false, val: successStories, set: setSuccessStories },
-              { label: 'No of Visits to new site :',     req: false, val: siteVisits,     set: setSiteVisits },
+              { label: 'No of Customer Registration :', req: true,  val: customersRegistered, set: setCustomersRegistered },
+              { label: 'No of Supplier Registration :', req: true,  val: suppliersRegistered, set: setSuppliersRegistered },
+              { label: 'Name of Products /Brand added :', req: true, val: newBrandProducts,   set: setNewBrandProducts },
+              { label: 'New Success Stories :',          req: false, val: successStories,      set: setSuccessStories },
+              { label: 'No of Visits to new site :',     req: false, val: websiteVisitors,     set: setWebsiteVisitors },
             ].map(({ label, req, val, set }) => (
               <div className="cnr-row" key={label}>
                 <label className="cnr-row-label">
@@ -196,10 +187,10 @@ export default function CreateNewReport({ onBack }: Props) {
                     min={0}
                   />
                   <div className="cnr-spinners">
-                    <button type="button" onClick={() => set(String(Math.max(0, Number(val) + 1)))} aria-label="Increase">
+                    <button type="button" onClick={() => set(v => String(Math.max(0, Number(v) + 1)))} aria-label="Increase">
                       <IconArrowUp style={{ width: 10, height: 10 }} />
                     </button>
-                    <button type="button" onClick={() => set(String(Math.max(0, Number(val) - 1)))} aria-label="Decrease">
+                    <button type="button" onClick={() => set(v => String(Math.max(0, Number(v) - 1)))} aria-label="Decrease">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}>
                         <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
                       </svg>
@@ -278,6 +269,8 @@ export default function CreateNewReport({ onBack }: Props) {
       </div>
 
       {/* ── Footer buttons ───────────────────────────────────────── */}
+      {submitError && <div className="login-error" style={{ margin: '0 0 12px' }}>{submitError}</div>}
+      {submitOk    && <div style={{ color: '#10b981', fontWeight: 600, marginBottom: 12 }}>Report submitted successfully!</div>}
       <div className="cnr-footer">
         <button className="cnr-btn-back" type="button" onClick={onBack}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -286,13 +279,13 @@ export default function CreateNewReport({ onBack }: Props) {
           Back to Dashboard
         </button>
         <div className="cnr-footer-right">
-          <button className="cnr-btn-draft" type="button">
+          <button className="cnr-btn-draft" type="button" disabled>
             <IconFileText />
             Save as Draft
           </button>
-          <button className="cnr-btn-submit" type="button" onClick={handleSubmitReport}>
+          <button className="cnr-btn-submit" type="button" onClick={handleSubmitReport} disabled={isSubmitting}>
             <IconPlus />
-            Submit Report
+            {isSubmitting ? 'Submitting…' : 'Submit Report'}
           </button>
         </div>
       </div>

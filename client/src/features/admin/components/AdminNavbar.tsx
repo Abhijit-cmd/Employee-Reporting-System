@@ -117,18 +117,24 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   settings:         { title: 'Settings',          sub: 'Dashboard / Settings' },
 }
 
+function getAdminUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}')
+  } catch {
+    return {}
+  }
+}
+
 export default function AdminNavbar({ page, onNavigate }: Props) {
-  const meta = PAGE_TITLES[page] ?? PAGE_TITLES['dashboard']
+  const meta  = PAGE_TITLES[page] ?? PAGE_TITLES['dashboard']
+  const admin = getAdminUser()
+  const initial = admin.name ? admin.name.charAt(0).toUpperCase() : 'A'
 
   return (
     <header className="navbar">
       <div className="navbar-title">
         <h1>{meta.title}</h1>
         <p>{meta.sub}</p>
-      </div>
-      <div className="navbar-search">
-        <IconSearch />
-        <input type="text" placeholder="Search employee..." />
       </div>
       <NavCalendar />
       <div className="navbar-actions">
@@ -137,20 +143,20 @@ export default function AdminNavbar({ page, onNavigate }: Props) {
           <span className="notif-dot" />
         </button>
       </div>
-      <div
-  className="navbar-profile"
-  onClick={() => onNavigate('settings')}
-  style={{ cursor: 'pointer' }}
->
-  <div className="avatar">A</div>
-
-  <div className="profile-info">
-    <strong>Admin User</strong>
-    <span>Super Admin</span>
-  </div>
-
-  <IconChevronDown className="profile-chevron" />
-</div>
+      <button
+        className="navbar-profile"
+        type="button"
+        onClick={() => onNavigate('settings')}
+        style={{ cursor: 'pointer' }}
+        aria-label="Open settings"
+      >
+        <div className="avatar">{initial}</div>
+        <div className="profile-info">
+          <strong>{admin.name || 'Admin'}</strong>
+          <span>Super Admin</span>
+        </div>
+        <IconChevronDown className="profile-chevron" />
+      </button>
     </header>
   )
 }

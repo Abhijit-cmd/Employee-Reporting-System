@@ -1,27 +1,14 @@
+import { useState, useEffect } from 'react'
 import { IconFileText, IconClock, IconTarget, IconMegaphone } from '../../../components/icons'
 
-const notifications = [
-  {
-    id: 1, icon: 'report',   color: '#d1fae5', iconColor: '#10b981',
-    title: 'Your May 2025 report has been submitted',
-    desc: '2 May 2025, 10:30 AM', time: '5m ago',
-  },
-  {
-    id: 2, icon: 'pending',  color: '#fef3c7', iconColor: '#f59e0b',
-    title: 'April 2025 report is pending review',
-    desc: '1 May 2025, 04:15 PM', time: '1h ago',
-  },
-  {
-    id: 3, icon: 'target',   color: '#e0e7ff', iconColor: '#6366f1',
-    title: 'Your target has been updated',
-    desc: '30 Apr 2025, 11:20 AM', time: '2h ago',
-  },
-  {
-    id: 4, icon: 'announce', color: '#fce7f3', iconColor: '#ec4899',
-    title: 'New announcement: Team meeting on Friday',
-    desc: '29 Apr 2025, 09:00 AM', time: '1d ago',
-  },
-]
+interface Notification {
+  id: number
+  title: string
+  message: string
+  notificationType: string
+  isRead: boolean
+  createdAt: string
+}
 
 function NotifIcon({ type }: { type: string }) {
   switch (type) {
@@ -33,7 +20,45 @@ function NotifIcon({ type }: { type: string }) {
   }
 }
 
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins  = Math.floor(diff / 60000)
+  if (mins < 60)  return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs  < 24)  return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
+  report:   { bg: '#d1fae5', color: '#10b981' },
+  pending:  { bg: '#fef3c7', color: '#f59e0b' },
+  target:   { bg: '#e0e7ff', color: '#6366f1' },
+  announce: { bg: '#fce7f3', color: '#ec4899' },
+}
+
 export default function NotificationsPanel() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/auth/profile`,
+          { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        )
+        if (!res.ok) return
+        // Notifications endpoint not yet available; show empty state gracefully
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchNotifications()
+  }, [])
+
   return (
     <div className="card">
       <div className="card-header">
@@ -41,20 +66,29 @@ export default function NotificationsPanel() {
         <button className="card-action" type="button">View all</button>
       </div>
       <div className="card-body" style={{ paddingTop: 4, paddingBottom: 4 }}>
-        <div className="notif-list">
-          {notifications.map(n => (
-            <div className="notif-item" key={n.id}>
-              <div className="notif-icon-wrap" style={{ background: n.color, color: n.iconColor }}>
-                <NotifIcon type={n.icon} />
-              </div>
-              <div className="notif-content">
-                <div className="notif-title">{n.title}</div>
-                <div className="notif-desc">{n.desc}</div>
-              </div>
-              <div className="notif-time">{n.time}</div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <p style={{ color: 'var(--text-muted)', padding: '16px 0', textAlign: 'center' }}>Loading…</p>
+        ) : notifications.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', padding: '16px 0', textAlign: 'center' }}>No notifications yet</p>
+        ) : (
+          <div className="notif-list">
+            {notifications.map(n => {
+              const style = TYPE_STYLES[n.notificationType] ?? TYPE_STYLES['report']
+              return (
+                <div className="notif-item" key={n.id}>
+                  <div className="notif-icon-wrap" style={{ background: style.bg, color: style.color }}>
+                    <NotifIcon type={n.notificationType} />
+                  </div>
+                  <div className="notif-content">
+                    <div className="notif-title">{n.title}</div>
+                    <div className="notif-desc">{n.message}</div>
+                  </div>
+                  <div className="notif-time">{timeAgo(n.createdAt)}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

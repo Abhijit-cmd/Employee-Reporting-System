@@ -2,6 +2,7 @@ import {
   IconHome, IconFileText, IconAward, IconPlus, IconBell,
   IconMegaphone, IconSettings, IconHelpCircle,
 } from '../../../components/icons'
+import pkg from '../../../../package.json'
 
 const navItems = [
   { id: 'home',            label: 'Home',             icon: 'home' },
@@ -55,7 +56,7 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
         <div className="sidebar-help">
           <div className="sidebar-help-icon"><IconHelpCircle /></div>
           <div className="sidebar-help-text">
-            <strong>Version 8.0.13</strong>
+            <strong>Version {pkg.version}</strong>
           </div>
         </div>
       </div>

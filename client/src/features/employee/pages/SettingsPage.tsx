@@ -34,15 +34,22 @@ function PasswordField({ label, value, onChange }: { label: string; value: strin
   )
 }
 
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+}
+
 export default function SettingsPage({ onBack }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
 
-  const [fullName,    setFullName]    = useState('Anil')
-  const [email,       setEmail]       = useState('anil.kumar@constromat.com')
-  const [phone,       setPhone]       = useState('+91 98765 43210')
-  const [empId,       setEmpId]       = useState('CM12345')
-  const [designation, setDesignation] = useState('Sales Executive')
+  const stored = getStoredUser()
+
+  const [fullName,    setFullName]    = useState(stored.name       || '')
+  const [email,       setEmail]       = useState(stored.email      || '')
+  const [phone,       setPhone]       = useState(stored.phone      || '')
+  const [empId,       setEmpId]       = useState(stored.employeeId || '')
+  const [designation, setDesignation] = useState('')
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw,     setNewPw]     = useState('')
@@ -146,7 +153,18 @@ export default function SettingsPage({ onBack }: Props) {
         <button className="cnr-btn-back" type="button" onClick={onBack}><IcoArrowLeft /> Back to Dashboard</button>
         <div className="cnr-footer-right">
           <button className="cnr-btn-draft" type="button" onClick={onBack}>Cancel</button>
-          <button className="cnr-btn-submit" type="button"><IcoSave /> Save Settings</button>
+          <button
+            className="cnr-btn-submit"
+            type="button"
+            onClick={() => {
+              const updated = { ...getStoredUser(), name: fullName, email, phone, employeeId: empId }
+              localStorage.setItem('user', JSON.stringify(updated))
+              setSaved(true)
+              setTimeout(() => setSaved(false), 2500)
+            }}
+          >
+            <IcoSave /> {saved ? 'Saved!' : 'Save Settings'}
+          </button>
         </div>
       </div>
 

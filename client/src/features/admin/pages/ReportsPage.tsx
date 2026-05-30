@@ -240,52 +240,38 @@ function MoreMenu({ onView, onDownload, onClose }: { onView: () => void; onDownl
     useState<any[]>([])
 
     useEffect(() => {
-
-  async function fetchReports() {
-
-    try {
-
-      const token =
-        localStorage.getItem("token");
-
-      const response =
-        await fetch(
+    async function fetchReports() {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(
           `${import.meta.env.VITE_API_URL}/api/reports`,
-          {
-            headers: {
-              Authorization:
-                token || "",
-            },
-          }
-        );
-
-      const data =
-        await response.json();
-
-      setReports(data);
-
-    } catch (error) {
-
-      console.log(error);
-
+          { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        )
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setReports(data)
+        } else {
+          console.error('Failed to fetch reports:', data)
+        }
+      } catch (error) {
+        console.error(error)
+      }
     }
-  }
-
-  fetchReports();
-
-}, []);
+    fetchReports()
+  }, []);
 
   // Filter
   const filtered = reports.filter(r => {
     const q = search.toLowerCase()
-    const matchSearch = !q || r.empName.toLowerCase().includes(q) ||  r.empId.toLowerCase().includes(q)
-    const matchStatus = statusFilter === 'All Status' || r.status === statusFilter
+    const matchSearch = !q ||
+      r.user?.name?.toLowerCase().includes(q) ||
+      r.user?.employeeId?.toLowerCase().includes(q)
+    const matchStatus = statusFilter === 'All Status' ||
+      r.reportStatus?.statusName === statusFilter
 
     let matchDate = true
-    if (startDate || endDate) {
-      // Parse "DD Mon YYYY, HH:MM AM/PM" → Date
-      const parts = r.submittedOn.split(',')[0].trim().split(' ')
-      const rDate = new Date(`${parts[1]} ${parts[0]} ${parts[2]}`)
+    if ((startDate || endDate) && r.createdAt) {
+      const rDate = new Date(r.createdAt)
       if (startDate && rDate < new Date(startDate)) matchDate = false
       if (endDate   && rDate > new Date(endDate))   matchDate = false
     }

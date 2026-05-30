@@ -43,18 +43,14 @@ function IcoSignIn() {
   )
 }
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const navigate = useNavigate()
 
-  const [email,      setEmail]      = useState('')
-  const [password,   setPassword]   = useState('')
-  const [showPw,     setShowPw]     = useState(false)
-  const [remember,   setRemember]   = useState(false)
-  const [error,      setError]      = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [isRegister, setIsRegister] = useState(false)
-  const [name,       setName]       = useState('')
-  const [phone,      setPhone]      = useState('')
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw,   setShowPw]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -62,33 +58,23 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const url = isRegister
-        ? `${import.meta.env.VITE_API_URL}/api/auth/register`
-        : `${import.meta.env.VITE_API_URL}/api/auth/login`
-
-      const response = await fetch(url, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email, password, role: 'employee' }),
+        body: JSON.stringify({ email, password, role: 'admin' }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.message || (isRegister ? 'Registration failed' : 'Login failed'))
-        return
-      }
-
-      if (isRegister) {
-        alert('Account created successfully. Please sign in.')
-        setIsRegister(false)
+        setError(data.message || 'Login failed')
         return
       }
 
       localStorage.setItem('token', data.token)
       const { id, name, email, employeeId, role } = data.user
       localStorage.setItem('user', JSON.stringify({ id, name, email, employeeId, role }))
-      navigate('/employee/dashboard')
+      navigate('/admin/dashboard')
 
     } catch {
       setError('Server error. Please try again.')
@@ -112,54 +98,19 @@ export default function LoginPage() {
           <div className="login-logo">
             <img src="/logo.png" alt="ConstroMat" className="login-logo-img" />
           </div>
-          <div className="login-welcome">Welcome Back!</div>
+          <div className="login-welcome">Admin Portal</div>
           <div className="login-welcome-sub">
-            Sign in to your employee account and continue managing reports efficiently.
+            Restricted access — authorised personnel only.
           </div>
         </div>
 
         {/* ── Right panel ── */}
         <div className="login-right">
           <div className="login-card">
-            <div className="login-card-title">
-              {isRegister ? 'Create an Account' : 'Employee Sign In'}
-            </div>
-            <div className="login-card-sub">
-              {isRegister ? 'Fill in your details to register' : 'Enter your credentials to continue'}
-            </div>
+            <div className="login-card-title">Super Admin Sign In</div>
+            <div className="login-card-sub">Enter your administrator credentials</div>
 
             <form onSubmit={handleSubmit} noValidate>
-              {isRegister && (
-                <>
-                  <div className="login-field">
-                    <label className="login-label">Full Name</label>
-                    <div className="login-input-wrap">
-                      <input
-                        className="login-input"
-                        type="text"
-                        placeholder="Enter full name"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        style={{ paddingLeft: 12 }}
-                      />
-                    </div>
-                  </div>
-                  <div className="login-field">
-                    <label className="login-label">Phone Number</label>
-                    <div className="login-input-wrap">
-                      <input
-                        className="login-input"
-                        type="text"
-                        placeholder="Enter phone number"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        style={{ paddingLeft: 12 }}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
               <div className="login-field">
                 <label className="login-label">Email Address</label>
                 <div className="login-input-wrap">
@@ -167,7 +118,7 @@ export default function LoginPage() {
                   <input
                     className="login-input"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Enter admin email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -201,47 +152,13 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {!isRegister && (
-                <div className="login-row">
-                  <label className="login-remember">
-                    <input
-                      type="checkbox"
-                      checked={remember}
-                      onChange={e => setRemember(e.target.checked)}
-                    />
-                    Remember me
-                  </label>
-                  <button type="button" className="login-forgot">Forgot Password?</button>
-                </div>
-              )}
-
               {error && <div className="login-error">{error}</div>}
 
               <button className="login-submit" type="submit" disabled={loading}>
                 <IcoSignIn />
-                {loading
-                  ? isRegister ? 'Registering...' : 'Signing in...'
-                  : isRegister ? 'Register' : 'Sign In'}
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
-
-            <div className="login-footer">
-              {isRegister ? (
-                <>
-                  Already have an account?{' '}
-                  <button type="button" className="login-register-link" onClick={() => setIsRegister(false)}>
-                    Sign In
-                  </button>
-                </>
-              ) : (
-                <>
-                  Don't have an account?{' '}
-                  <button type="button" className="login-register-link" onClick={() => setIsRegister(true)}>
-                    Register
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         </div>
 

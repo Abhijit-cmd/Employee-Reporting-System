@@ -1,5 +1,4 @@
-import { useState,useEffect } from 'react'
-import { employeeStore } from '../../../store/employeeStore'
+import { useState, useEffect } from 'react'
 import type { Employee } from '../../../store/employeeStore'
 
 interface Props {
@@ -167,62 +166,42 @@ export default function EmployeesPage({ onNavigate }: Props) {
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
-
-  async function fetchEmployees() {
-
-    try {
-
-      const token =
-        localStorage.getItem("token");
-
-      const response =
-        await fetch(
+    async function fetchEmployees() {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(
           `${import.meta.env.VITE_API_URL}/api/auth/employees`,
-          {
-            headers: {
-              Authorization:
-                token || "",
-            },
-          }
-        );
-
-      const data =
-        await response.json();
-
-      setEmployees(data);
-
-    } catch (error) {
-
-      console.log(error);
-
+          { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        )
+        const data = await response.json()
+        if (Array.isArray(data)) setEmployees(data)
+        else console.error('Failed to fetch employees:', data)
+      } catch (error) {
+        console.error(error)
+      }
     }
-  }
+    fetchEmployees()
+  }, [])
 
-  fetchEmployees();
-
-}, []);
-
-  // Sync additions back to the shared store so KpiCards picks them up
   function handleAdd(emp: Employee) {
-    employeeStore.push(emp)
-    setEmployees([...employeeStore])
+    setEmployees(prev => [...prev, emp])
   }
 
   function handleDelete(id: string) {
-    const idx = employeeStore.findIndex(e => e.id === id)
-    if (idx !== -1) employeeStore.splice(idx, 1)
-    setEmployees([...employeeStore])
+    if (!window.confirm('Are you sure you want to remove this employee? This cannot be undone.')) return
+    // No delete API endpoint yet — remove from local view only
+    setEmployees(prev => prev.filter(e => (e.employeeId ?? e.id) !== id))
   }
 
   // Filter
   const filtered = employees.filter(e => {
     const matchSearch = !search ||
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase()) ||
-      e.id.toLowerCase().includes(search.toLowerCase())
-    const matchDept   = deptFilter   === 'All Departments' || e.department === deptFilter
-    const matchStatus = statusFilter === 'All Status'      || e.status     === statusFilter
-    return matchSearch && matchDept && matchStatus
+      e.name?.toLowerCase().includes(search.toLowerCase()) ||
+      e.email?.toLowerCase().includes(search.toLowerCase()) ||
+      e.employeeId?.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'All Status' ||
+      e.status?.toLowerCase() === statusFilter.toLowerCase()
+    return matchSearch && matchStatus
   })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))

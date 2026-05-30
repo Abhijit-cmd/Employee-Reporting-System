@@ -19,16 +19,12 @@ function EmployeePageContent({ page, onNavigate }: { page: string; onNavigate: (
 export default function EmployeeApp() {
   const [empPage, setEmpPage] = useState('home')
 
-  function handleNavigate(page: string) {
-    setEmpPage(page)
-  }
-
   return (
     <div className="layout">
-      <EmployeeSidebar active={empPage} onNav={handleNavigate} />
+      <EmployeeSidebar active={empPage} onNav={setEmpPage} />
       <div className="main-wrapper">
-        <EmployeeNavbar page={empPage} onNavigate={handleNavigate} />
-        <EmployeePageContent page={empPage} onNavigate={handleNavigate} />
+        <EmployeeNavbar page={empPage} onNavigate={setEmpPage} />
+        <EmployeePageContent page={empPage} onNavigate={setEmpPage} />
       </div>
     </div>
   )

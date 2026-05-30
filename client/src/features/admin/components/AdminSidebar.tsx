@@ -3,11 +3,13 @@ import {
   IconBell, IconBarChart, IconTrendingUp, IconDownload, IconSettings, IconHelpCircle,
 } from '../../../components/icons'
 
+import pkg from '../../../../package.json'
+
 const navItems = [
   { id: 'dashboard',       label: 'Dashboard',       section: 'MANAGEMENT' },
   { id: 'employees',       label: 'Employees',        section: 'MANAGEMENT' },
   { id: 'reports',         label: 'Reports',          section: 'MANAGEMENT' },
-  { id: 'pending-reports', label: 'Pending Reports',  section: 'MANAGEMENT', badge: 12 },
+  { id: 'pending-reports', label: 'Pending Reports',  section: 'MANAGEMENT' },
   { id: 'targets',         label: 'Targets',          section: 'MANAGEMENT' },
   { id: 'notifications',   label: 'Notifications',    section: 'MANAGEMENT' },
   { id: 'analytics',       label: 'Analytics',        section: 'ANALYTICS' },
@@ -71,8 +73,7 @@ export default function AdminSidebar({ active, onNav }: Props) {
         <div className="sidebar-help">
           <div className="sidebar-help-icon"><IconHelpCircle /></div>
           <div className="sidebar-help-text">
-            <strong>Version 8.0.13</strong>
-          
+            <strong>Version {pkg.version}</strong>
           </div>
         </div>
       </div>

@@ -43,15 +43,15 @@ export default function MyReportsTable() {
         const data =
           await response.json()
 
-        console.log(data)
-
         if (Array.isArray(data)) {
           setReports(data)
+        } else {
+          console.error('Failed to fetch reports:', data)
         }
 
       } catch (error) {
 
-        console.log(error)
+        console.error(error)
 
       }
     }

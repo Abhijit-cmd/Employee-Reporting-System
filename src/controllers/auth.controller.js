@@ -2,201 +2,146 @@ const prisma = require("../prisma/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function safeUser(user) {
+  const { password, ...rest } = user;
+  return rest;
+}
 
 // REGISTER USER
 exports.registerUser = async (req, res) => {
   try {
+    const { name, email, password, phone, role } = req.body;
 
-    const {
-  name,
-  email,
-  password,
-  phone,
-  role
-} = req.body;
-
-    // CHECK EXISTING USER
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists"
-      });
+    if (!name || typeof name !== "string" || name.trim().length < 2) {
+      return res.status(400).json({ message: "Name must be at least 2 characters" });
+    }
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+    if (!password || password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+    if (phone && !/^\+?[\d\s\-]{7,15}$/.test(phone)) {
+      return res.status(400).json({ message: "Invalid phone number" });
     }
 
-    // AUTO-GENERATE EMPLOYEE ID
-    const lastUser = await prisma.user.findFirst({
-      where: { employeeId: { not: null } },
-      orderBy: { id: "desc" },
-    });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-    const nextNum = lastUser?.employeeId
-      ? parseInt(lastUser.employeeId.replace("EMP", ""), 10) + 1
-      : 1;
+    const roleName = role === "admin" ? "Admin" : "Employee";
+    const roleRecord = await prisma.role.findUnique({ where: { roleName } });
+    if (!roleRecord) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
 
-    const employeeId = `EMP${String(nextNum).padStart(3, "0")}`;
-
-    // HASH PASSWORD
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const roleId = role === "admin" ? 1 : 2;
+    // Atomic employee ID generation via transaction
+    const user = await prisma.$transaction(async (tx) => {
+      const lastUser = await tx.user.findFirst({
+        where: { employeeId: { not: null } },
+        orderBy: { id: "desc" },
+        select: { employeeId: true },
+      });
+      const nextNum = lastUser?.employeeId
+        ? parseInt(lastUser.employeeId.replace("EMP", ""), 10) + 1
+        : 1;
+      const employeeId = `EMP${String(nextNum).padStart(3, "0")}`;
 
-    // CREATE USER
-    const user = await prisma.user.create({
-      data: {
-        employeeId,
-        name,
-        phone,
-        email,
-        password: hashedPassword,
-        role: {
-          connect: { id: roleId },
+      return tx.user.create({
+        data: {
+          employeeId,
+          name: name.trim(),
+          phone,
+          email,
+          password: hashedPassword,
+          role: { connect: { id: roleRecord.id } },
         },
-      },
+        include: { role: true },
+      });
     });
 
     res.status(201).json({
       message: "User registered successfully",
-      user
+      user: safeUser(user),
     });
-
   } catch (error) {
-
-    res.status(500).json({
-      message: error.message
-    });
-
+    console.error(error);
+    res.status(500).json({ message: "Registration failed" });
   }
 };
 
-
 // LOGIN USER
 exports.loginUser = async (req, res) => {
-
   try {
-
     const { email, password } = req.body;
 
-    // FIND USER
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-      include: {
-        role: true,
-      },
+      where: { email },
+      include: { role: true },
     });
 
+    // Use consistent error to prevent user enumeration
     if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // CHECK PASSWORD
-    const isMatch = await bcrypt.compare(
-      password,
-      user.password
-    );
-
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({
-        message: "Invalid credentials"
-      });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // GENERATE JWT TOKEN
     const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role
-      },
+      { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "1d"
-      }
+      { expiresIn: "1d" }
     );
 
     res.status(200).json({
       message: "Login successful",
       token,
-      user
+      user: safeUser(user),
     });
-
   } catch (error) {
-
-    res.status(500).json({
-      message: error.message
-    });
-
+    console.error(error);
+    res.status(500).json({ message: "Login failed" });
   }
 };
 
-exports.getProfile = async (
-  req,
-  res
-) => {
-
+exports.getProfile = async (req, res) => {
   try {
-
-    const user =
-      await prisma.user.findUnique({
-
-        where: {
-          id: req.user.id,
-        },
-
-        include: {
-          role: true,
-        },
-
-      });
-
-    res.status(200).json(user);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { role: true },
     });
 
-  }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
+    res.status(200).json(safeUser(user));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch profile" });
+  }
 };
 
-exports.getAllEmployees = async (
-  req,
-  res
-) => {
-
+exports.getAllEmployees = async (req, res) => {
   try {
-
-  const employees =
-  await prisma.user.findMany({
-
-    where: {
-      role: {
-        roleName: "Employee",
-      },
-    },
-
-    include: {
-      role: true,
-    },
-
-  });
-    res.status(200).json(
-      employees
-    );
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
+    const employees = await prisma.user.findMany({
+      where: { role: { roleName: "Employee" } },
+      include: { role: true },
     });
 
+    res.status(200).json(employees.map(safeUser));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch employees" });
   }
-
 };

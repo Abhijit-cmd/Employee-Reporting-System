@@ -70,16 +70,6 @@ export const reportStore: Report[] = [
     accomplishments: 'Completed quarterly audit ahead of schedule and improved payment collection efficiency.',
   },
   {
-    id: 5, empId: 'EMP004', empName: 'Fatima Shaikh', month: 'April 2025',
-    submittedOn: '29 Apr 2025, 09:45 AM', status: 'Submitted',
-    mmyyyy: '042025', businessOwner: 'John Smith', preparedBy: 'Fatima Shaikh', reviewedBy: 'Ram Sharma',
-    customerReg: 10, supplierReg: 15, productsAdded: 7, successStories: 30, siteVisits: 10,
-    challenges: 'Finance reconciliation delays impacted monthly closing timelines.',
-    salesBooking: 'Finance-related product bookings remained stable with consistent invoice processing.',
-    targetVsAchievement: 'Target achievement at 82% with minor variance in budget allocation.',
-    accomplishments: 'Completed quarterly audit ahead of schedule and improved payment collection efficiency.',
-  },
-  {
     id: 6, empId: 'EMP005', empName: 'Usman Ali', month: 'April 2025',
     submittedOn: '28 Apr 2025, 03:10 AM', status: 'Submitted',
     mmyyyy: '042025', businessOwner: 'John Smith', preparedBy: 'Usman Ali', reviewedBy: 'Ram Sharma',
