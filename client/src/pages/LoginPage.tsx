@@ -86,8 +86,10 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('token', data.token)
-      const { id, name, email, employeeId, role } = data.user
-      localStorage.setItem('user', JSON.stringify({ id, name, email, employeeId, role }))
+      const u = data.user
+      localStorage.setItem('user', JSON.stringify({
+        id: u.id, name: u.name, email: u.email, employeeId: u.employeeId, role: u.role
+      }))
       navigate('/employee/dashboard')
 
     } catch {
