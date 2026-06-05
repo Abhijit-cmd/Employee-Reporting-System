@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from '../pages/LoginPage'
+import AdminLoginPage from '../pages/AdminLoginPage'
 import AdminApp from '../pages/admin/AdminApp'
 import EmployeeApp from '../pages/employee/EmployeeApp'
 import { getToken, isTokenExpired, getStoredUser, isAdmin, isEmployee } from '../lib/auth'
@@ -25,6 +26,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/superadmin" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<RequireAdmin><AdminApp /></RequireAdmin>} />
       <Route path="/employee/dashboard" element={<RequireEmployee><EmployeeApp /></RequireEmployee>} />
       <Route path="*" element={<Navigate to="/login" replace />} />

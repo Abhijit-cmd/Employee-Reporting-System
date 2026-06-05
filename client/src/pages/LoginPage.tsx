@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { saveTokens, saveUser } from '../lib/auth'
 import '../styles/login.css'
 
 function IcoMail() {
@@ -85,11 +86,8 @@ export default function LoginPage() {
         return
       }
 
-      localStorage.setItem('token', data.token)
-      const u = data.user
-      localStorage.setItem('user', JSON.stringify({
-        id: u.id, name: u.name, email: u.email, employeeId: u.employeeId, role: u.role
-      }))
+      saveTokens(data.accessToken, data.refreshToken)
+      saveUser(data.user)
       navigate('/employee/dashboard')
 
     } catch {
