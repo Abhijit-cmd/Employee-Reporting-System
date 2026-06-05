@@ -2,49 +2,51 @@ import { useState, useEffect } from 'react'
 import {
   IconFileText, IconClock, IconTarget, IconBarChart, IconArrowUp,
 } from '../../../components/icons'
-
-interface ReportItem {
-  reportStatus?: { statusName?: string }
-  createdAt?: string
-}
+import { apiFetch } from '../../../lib/api'
+import type { Report } from '../../../types'
 
 export default function EmployeeKpiCards() {
-  const [reports, setReports]   = useState<ReportItem[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [submitted, setSubmitted] = useState(0)
+  const [pending,   setPending]   = useState(0)
+  const [thisMonth, setThisMonth] = useState(0)
+  const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
-    async function fetchMyReports() {
+    let cancelled = false
+
+    async function load() {
       try {
-        const token = localStorage.getItem('token')
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/reports/my-reports`,
-          { headers: { Authorization: token ? `Bearer ${token}` : '' } }
-        )
-        const data = await res.json()
-        if (Array.isArray(data)) setReports(data)
-      } catch (error) {
-        console.error(error)
+        const reports = await apiFetch<Report[]>('/api/reports/my-reports')
+        if (cancelled) return
+
+        const list = Array.isArray(reports) ? reports : []
+        const now  = new Date()
+        const monthKey = `${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`
+
+        setSubmitted(list.filter(r => r.reportStatus?.statusName === 'Submitted').length)
+        setPending(list.filter(r =>
+          ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? '')
+        ).length)
+        setThisMonth(list.filter(r => r.mmyyyy === monthKey).length)
+      } catch {
+        /* leave at zero */
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchMyReports()
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
-  const pending  = reports.filter(r => r.reportStatus?.statusName === 'Pending').length
-  const thisYear = new Date().getFullYear()
-  const yearReports = reports.filter(r => r.createdAt && new Date(r.createdAt).getFullYear() === thisYear)
-  const thisMonth = reports.filter(r => {
-    if (!r.createdAt) return false
-    const d = new Date(r.createdAt)
-    const now = new Date()
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  }).length
+  const achievementPct = submitted + pending > 0
+    ? `${Math.round((submitted / (submitted + pending)) * 100)}%`
+    : '0%'
 
   const kpis = [
     {
-      label: 'Reports Submitted', value: loading ? '…' : String(yearReports.length),
-      sub: 'This Year', subType: 'plain',
+      label: 'Reports Submitted', value: loading ? '…' : String(submitted),
+      sub: 'All time', subType: 'plain',
       icon: <IconFileText />, iconBg: '#e0e7ff', iconColor: '#6366f1',
     },
     {
@@ -53,8 +55,8 @@ export default function EmployeeKpiCards() {
       icon: <IconClock />, iconBg: '#fef3c7', iconColor: '#f59e0b',
     },
     {
-      label: 'Target Achievement', value: '—',
-      sub: 'No data yet', subType: 'plain',
+      label: 'Target Achievement', value: loading ? '…' : achievementPct,
+      sub: 'Submitted vs pending', subType: 'up',
       icon: <IconTarget />, iconBg: '#d1fae5', iconColor: '#10b981',
     },
     {
@@ -66,8 +68,8 @@ export default function EmployeeKpiCards() {
 
   return (
     <div className="kpi-row emp-kpi-row">
-      {kpis.map((k, i) => (
-        <div className="kpi-card" key={i}>
+      {kpis.map((k) => (
+        <div className="kpi-card" key={k.label}>
           <div className="kpi-icon" style={{ background: k.iconBg, color: k.iconColor }}>
             {k.icon}
           </div>

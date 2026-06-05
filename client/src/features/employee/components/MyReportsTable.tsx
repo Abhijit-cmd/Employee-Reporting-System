@@ -1,241 +1,110 @@
+import { useState, useEffect } from 'react'
 import {
-  useState,
-  useEffect
-} from 'react'
-
-import {
-  IconEye,
-  IconEdit,
-  IconChevronLeft,
-  IconChevronRight
+  IconEye, IconEdit, IconChevronLeft, IconChevronRight,
 } from '../../../components/icons'
+import { apiFetch } from '../../../lib/api'
+import type { Report } from '../../../types'
+import { formatDateTime, formatMmyyyy, statusClass } from '../../../lib/utils'
 
 const PAGE_SIZE = 5
 
 export default function MyReportsTable() {
-
-  const [page, setPage] =
-    useState(1)
-
-  const [reports, setReports] =
-    useState<any[]>([])
+  const [page,    setPage]    = useState(1)
+  const [reports, setReports] = useState<Report[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState('')
 
   useEffect(() => {
+    let cancelled = false
 
     async function fetchReports() {
-
+      setLoading(true)
+      setError('')
       try {
-
-        const token =
-          localStorage.getItem("token")
-
-        const response =
-          await fetch(
-            `${import.meta.env.VITE_API_URL}/api/reports/my-reports`,
-            {
-              headers: {
-                Authorization:
-                  token ? `Bearer ${token}` : "",
-              },
-            }
-          )
-
-        const data =
-          await response.json()
-
-        if (Array.isArray(data)) {
-          setReports(data)
-        } else {
-          console.error('Failed to fetch reports:', data)
+        const data = await apiFetch<Report[]>('/api/reports/my-reports')
+        if (!cancelled) setReports(Array.isArray(data) ? data : [])
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load reports')
+          setReports([])
         }
-
-      } catch (error) {
-
-        console.error(error)
-
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchReports()
-
+    return () => { cancelled = true }
   }, [])
 
-  const totalPages =
-    Math.ceil(
-      reports.length / PAGE_SIZE
-    )
-
-  const rows =
-    reports.slice(
-      (page - 1) * PAGE_SIZE,
-      page * PAGE_SIZE
-    )
+  const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE))
+  const rows = reports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
-
     <div className="card">
-
       <div className="card-header">
-
-        <span className="card-title">
-          My Recent Reports
-        </span>
-
-        <button
-          className="card-action"
-          type="button"
-        >
-          View all
-        </button>
-
+        <span className="card-title">My Recent Reports</span>
+        <button className="card-action" type="button">View all</button>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-
-        <table className="reports-table">
-
-          <thead>
-            <tr>
-              <th>Month</th>
-              <th>Reviewed By</th>
-              <th>Status</th>
-              <th>Submitted On</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {rows.map((r) => (
-
-              <tr key={r.id}>
-
-                <td style={{ color: '#6b7280' }}>
-
-                  {
-                    new Date(
-                      r.mmyyyy.slice(2),
-                      Number(
-                        r.mmyyyy.slice(0, 2)
-                      ) - 1
-                    ).toLocaleString(
-                      'default',
-                      {
-                        month: 'long',
-                        year: 'numeric'
-                      }
-                    )
-                  }
-
-                </td>
-
-                <td style={{ fontWeight: 500 }}>
-                  {r.reviewedBy}
-                </td>
-
-                <td>
-
-                  <span
-                    className={`status-badge ${r.reportStatus?.statusName?.toLowerCase()}`}
-                  >
-                    {r.reportStatus?.statusName}
-                  </span>
-
-                </td>
-
-                <td style={{ color: '#6b7280' }}>
-
-                  {
-                    new Date(
-                      r.createdAt
-                    ).toLocaleString()
-                  }
-
-                </td>
-
-                <td>
-
-                  <button
-                    className="action-btn"
-                    type="button"
-                  >
-
-                    {
-                      r.reportStatus?.statusName === "Draft"
-                        ? <IconEdit />
-                        : <IconEye />
-                    }
-
-                  </button>
-
-                </td>
-
+        {loading && <p style={{ padding: 24, color: 'var(--text-muted)' }}>Loading reports…</p>}
+        {error && !loading && <p style={{ padding: 24, color: '#ef4444' }}>{error}</p>}
+        {!loading && !error && (
+          <table className="reports-table">
+            <thead>
+              <tr>
+                <th>Month</th><th>Reviewed By</th><th>Status</th><th>Submitted On</th><th>Action</th>
               </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 24 }}>
+                    No reports yet.
+                  </td>
+                </tr>
+              ) : rows.map(r => (
+                <tr key={r.id}>
+                  <td style={{ color: '#6b7280' }}>{formatMmyyyy(r.mmyyyy)}</td>
+                  <td style={{ fontWeight: 500 }}>{r.reviewedBy}</td>
+                  <td>
+                    <span className={`status-badge ${statusClass(r.reportStatus?.statusName ?? '')}`}>
+                      {r.reportStatus?.statusName}
+                    </span>
+                  </td>
+                  <td style={{ color: '#6b7280' }}>{formatDateTime(r.createdAt)}</td>
+                  <td>
+                    <button className="action-btn" type="button">
+                      {r.reportStatus?.statusName === 'Draft' ? <IconEdit /> : <IconEye />}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
+      {!loading && !error && reports.length > 0 && (
+        <div className="table-footer">
+          <span className="table-count">Showing {rows.length} of {reports.length} reports</span>
+          <div className="pagination">
+            <button className="page-btn" type="button"
+              onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+              <IconChevronLeft />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button key={p} className={`page-btn${page === p ? ' active' : ''}`}
+                type="button" onClick={() => setPage(p)}>{p}</button>
             ))}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-      <div className="table-footer">
-
-        <span className="table-count">
-
-          Showing {rows.length} of {reports.length} reports
-
-        </span>
-
-        <div className="pagination">
-
-          <button
-            className="page-btn"
-            type="button"
-            onClick={() =>
-              setPage(p => Math.max(1, p - 1))
-            }
-            disabled={page === 1}
-          >
-            <IconChevronLeft />
-          </button>
-
-          {
-            Array.from(
-              { length: totalPages },
-              (_, i) => i + 1
-            ).map(p => (
-
-              <button
-                key={p}
-                className={`page-btn${page === p ? ' active' : ''}`}
-                type="button"
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </button>
-
-            ))
-          }
-
-          <button
-            className="page-btn"
-            type="button"
-            onClick={() =>
-              setPage(p =>
-                Math.min(totalPages, p + 1)
-              )
-            }
-            disabled={page === totalPages}
-          >
-            <IconChevronRight />
-          </button>
-
+            <button className="page-btn" type="button"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+              <IconChevronRight />
+            </button>
+          </div>
         </div>
-
-      </div>
-
+      )}
     </div>
   )
 }

@@ -2,82 +2,85 @@ import { useState, useEffect } from 'react'
 import {
   IconUsers, IconFileText, IconClock, IconCheckCircle, IconTarget, IconArrowUp,
 } from '../../../components/icons'
+import { apiFetch } from '../../../lib/api'
+import type { ApiEmployee, Report } from '../../../types'
 
 interface Props {
   onNavigate?: (page: string) => void
 }
 
-interface KpiData {
-  totalEmployees: number
-  totalReports: number
-  pendingReports: number
-  completedReports: number
-}
-
 export default function KpiCards({ onNavigate }: Props) {
-  const [data, setData]       = useState<KpiData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [empCount,     setEmpCount]     = useState(0)
+  const [totalReports, setTotalReports] = useState(0)
+  const [pending,      setPending]      = useState(0)
+  const [completed,    setCompleted]    = useState(0)
+  const [loading,      setLoading]      = useState(true)
 
   useEffect(() => {
-    async function fetchKpis() {
+    let cancelled = false
+
+    async function load() {
       try {
-        const token = localStorage.getItem('token')
-        const headers = { Authorization: token ? `Bearer ${token}` : '' }
-
-        const [empRes, repRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/api/auth/employees`, { headers }),
-          fetch(`${import.meta.env.VITE_API_URL}/api/reports`, { headers }),
+        const [employees, reports] = await Promise.all([
+          apiFetch<ApiEmployee[]>('/api/auth/employees'),
+          apiFetch<Report[]>('/api/reports'),
         ])
+        if (cancelled) return
 
-        const employees = empRes.ok ? await empRes.json() : []
-        const reports   = repRes.ok ? await repRes.json() : []
+        const empList    = Array.isArray(employees) ? employees : []
+        const reportList = Array.isArray(reports)   ? reports   : []
 
-        const pending   = Array.isArray(reports) ? reports.filter((r: any) => r.reportStatus?.statusName === 'Pending').length   : 0
-        const completed = Array.isArray(reports) ? reports.filter((r: any) => r.reportStatus?.statusName === 'Submitted').length : 0
-
-        setData({
-          totalEmployees:   Array.isArray(employees) ? employees.length : 0,
-          totalReports:     Array.isArray(reports)   ? reports.length   : 0,
-          pendingReports:   pending,
-          completedReports: completed,
-        })
-      } catch (error) {
-        console.error(error)
+        setEmpCount(empList.length)
+        setTotalReports(reportList.length)
+        setPending(reportList.filter(r =>
+          ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? '')
+        ).length)
+        setCompleted(reportList.filter(r =>
+          ['Submitted', 'Approved', 'Completed'].includes(r.reportStatus?.statusName ?? '')
+        ).length)
+      } catch {
+        /* leave at zero */
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchKpis()
+
+    load()
+    return () => { cancelled = true }
   }, [])
+
+  const achievementPct = totalReports > 0
+    ? `${Math.round((completed / totalReports) * 100)}%`
+    : '0%'
 
   const kpis = [
     {
-      label: 'Total Employees', value: loading ? '…' : String(data?.totalEmployees ?? 0),
-      sub: '', subType: 'plain',
+      label: 'Total Employees', value: loading ? '…' : String(empCount),
+      sub: 'Active employees', subType: 'up',
       icon: <IconUsers />, iconBg: '#e0e7ff', iconColor: '#6366f1',
       onClick: () => onNavigate?.('employees'),
     },
     {
-      label: 'Total Reports', value: loading ? '…' : String(data?.totalReports ?? 0),
-      sub: '', subType: 'plain',
+      label: 'Total Reports', value: loading ? '…' : String(totalReports),
+      sub: 'All time', subType: 'up',
       icon: <IconFileText />, iconBg: '#d1fae5', iconColor: '#10b981',
-      onClick: undefined,
+      onClick: () => onNavigate?.('reports'),
     },
     {
-      label: 'Pending Reports', value: loading ? '…' : String(data?.pendingReports ?? 0),
+      label: 'Pending Reports', value: loading ? '…' : String(pending),
       sub: 'Awaiting review', subType: 'link',
       icon: <IconClock />, iconBg: '#fef3c7', iconColor: '#f59e0b',
       onClick: () => onNavigate?.('pending-reports'),
     },
     {
-      label: 'Completed Reports', value: loading ? '…' : String(data?.completedReports ?? 0),
-      sub: '', subType: 'plain',
+      label: 'Completed Reports', value: loading ? '…' : String(completed),
+      sub: 'View completed', subType: 'link',
       icon: <IconCheckCircle />, iconBg: '#d1fae5', iconColor: '#10b981',
-      onClick: undefined,
+      onClick: () => onNavigate?.('reports'),
     },
     {
-      label: 'Target Achievement', value: '—',
-      sub: 'No data yet', subType: 'plain',
+      label: 'Target Achievement', value: loading ? '…' : achievementPct,
+      sub: 'Submitted vs total', subType: 'up',
       icon: <IconTarget />, iconBg: '#fee2e2', iconColor: '#ef4444',
       onClick: undefined,
     },
@@ -85,10 +88,10 @@ export default function KpiCards({ onNavigate }: Props) {
 
   return (
     <div className="kpi-row">
-      {kpis.map((k, i) => (
+      {kpis.map((k) => (
         <div
           className={`kpi-card${k.onClick ? ' kpi-card-clickable' : ''}`}
-          key={i}
+          key={k.label}
           onClick={k.onClick}
           role={k.onClick ? 'button' : undefined}
           tabIndex={k.onClick ? 0 : undefined}
@@ -100,12 +103,10 @@ export default function KpiCards({ onNavigate }: Props) {
           <div className="kpi-body">
             <div className="kpi-label">{k.label}</div>
             <div className="kpi-value">{k.value}</div>
-            {k.sub && (
-              <div className={`kpi-sub ${k.subType}`}>
-                {k.subType === 'up' && <IconArrowUp />}
-                {k.sub}
-              </div>
-            )}
+            <div className={`kpi-sub ${k.subType}`}>
+              {k.subType === 'up' && <IconArrowUp />}
+              {k.sub}
+            </div>
           </div>
         </div>
       ))}

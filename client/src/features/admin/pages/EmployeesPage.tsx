@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import type { Employee } from '../../../store/employeeStore'
+import { apiFetch } from '../../../lib/api'
+import { showToast } from '../../../lib/feedback'
+import { initials } from '../../../lib/utils'
+import type { ApiEmployee } from '../../../types'
 
 interface Props {
   onNavigate: (page: string) => void
@@ -158,39 +161,35 @@ function AddEmployeeModal({ onClose, onAdd, existingCount }: ModalProps) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function EmployeesPage({ onNavigate }: Props) {
-  const [employees, setEmployees] = useState<any[]>([])
-  const [search,    setSearch]    = useState('')
-  const [deptFilter, setDeptFilter] = useState('All Departments')
+  const [employees,    setEmployees]    = useState<ApiEmployee[]>([])
+  const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
-  const [page, setPage] = useState(1)
-  const [showModal, setShowModal] = useState(false)
+  const [page,         setPage]         = useState(1)
+  const [showModal,    setShowModal]    = useState(false)
+  const [loading,      setLoading]      = useState(true)
 
-  useEffect(() => {
-    async function fetchEmployees() {
-      try {
-        const token = localStorage.getItem('token')
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/auth/employees`,
-          { headers: { Authorization: token ? `Bearer ${token}` : '' } }
-        )
-        const data = await response.json()
-        if (Array.isArray(data)) setEmployees(data)
-        else console.error('Failed to fetch employees:', data)
-      } catch (error) {
-        console.error(error)
-      }
+  async function fetchEmployees() {
+    try {
+      const data = await apiFetch<ApiEmployee[]>('/api/auth/employees')
+      setEmployees(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-    fetchEmployees()
-  }, [])
-
-  function handleAdd(emp: Employee) {
-    setEmployees(prev => [...prev, emp])
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm('Are you sure you want to remove this employee? This cannot be undone.')) return
-    // No delete API endpoint yet — remove from local view only
-    setEmployees(prev => prev.filter(e => (e.employeeId ?? e.id) !== id))
+  useEffect(() => { fetchEmployees() }, [])
+
+  async function handleDelete(id: number) {
+    if (!window.confirm('Are you sure you want to delete this employee? This cannot be undone.')) return
+    try {
+      await apiFetch(`/api/auth/employees/${id}`, { method: 'DELETE' })
+      setEmployees(prev => prev.filter(e => e.id !== id))
+      showToast('Employee deleted', 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Delete failed', 'error')
+    }
   }
 
   // Filter

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ToastContainer } from '../../lib/feedback'
 import AdminSidebar from '../../features/admin/components/AdminSidebar'
 import AdminNavbar from '../../features/admin/components/AdminNavbar'
 import AdminDashboard from '../../features/admin/pages/AdminDashboard'
@@ -26,6 +27,7 @@ export default function AdminApp() {
 
   return (
     <div className="layout">
+      <ToastContainer />
       <AdminSidebar active={adminPage} onNav={setAdminPage} />
       <div className="main-wrapper">
         <AdminNavbar page={adminPage} onNavigate={setAdminPage} />

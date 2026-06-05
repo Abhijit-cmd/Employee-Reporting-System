@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ToastContainer } from '../../lib/feedback'
 import EmployeeSidebar from '../../features/employee/components/EmployeeSidebar'
 import EmployeeNavbar from '../../features/employee/components/EmployeeNavbar'
 import EmployeeDashboard from '../../features/employee/pages/EmployeeDashboard'
@@ -21,6 +22,7 @@ export default function EmployeeApp() {
 
   return (
     <div className="layout">
+      <ToastContainer />
       <EmployeeSidebar active={empPage} onNav={setEmpPage} />
       <div className="main-wrapper">
         <EmployeeNavbar page={empPage} onNavigate={setEmpPage} />
