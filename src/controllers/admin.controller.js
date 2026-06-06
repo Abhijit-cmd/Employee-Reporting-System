@@ -58,7 +58,7 @@ exports.getEmployeeTargetAchievements = async (req, res) => {
     // Fetch targets with employee data and calculate achieved
     const targets = await prisma.target.findMany({
       include: {
-        employee: true,
+        employee: { select: { name: true } },
       },
     });
 
