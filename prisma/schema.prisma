@@ -192,7 +192,7 @@ model LoginLog {
 
 model RefreshToken {
   id     Int    @id @default(autoincrement())
-  token  String @unique
+  token  String @unique @db.VarChar(512)
   userId Int
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
