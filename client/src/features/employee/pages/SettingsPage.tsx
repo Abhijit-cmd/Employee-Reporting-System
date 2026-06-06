@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Toggle, ThemeToggle } from '../../shared/settingsComponents'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
@@ -17,6 +17,8 @@ export default function SettingsPage({ onBack }: Props) {
   const [empId,       setEmpId]       = useState('')
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState('')
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   const [reportRemind,  setReportRemind]  = useState(true)
   const [announceNotif, setAnnounceNotif] = useState(true)
@@ -28,16 +30,18 @@ export default function SettingsPage({ onBack }: Props) {
       const data = await apiFetch<{ name?: string; email?: string; phone?: string; employeeId?: string }>(
         '/api/auth/profile',
       )
+      if (!mountedRef.current) return
       setFullName(data.name || '')
       setEmail(data.email || '')
       setPhone(data.phone || '')
       setEmpId(data.employeeId || '')
     } catch (err) {
+      if (!mountedRef.current) return
       const msg = err instanceof Error ? err.message : 'Could not load profile'
       setError(msg)
       showToast(msg, 'error')
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
 import { initials } from '../../../lib/utils'
@@ -205,6 +205,8 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteEmployeeName, setDeleteEmployeeName] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   useEffect(() => {
     setSearch(initialSearch)
@@ -215,17 +217,16 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     setError('')
     try {
       const data = await apiFetch<ApiEmployee[]>(`/api/auth/employees?search=${encodeURIComponent(search)}`, { signal })
+      if (!mountedRef.current) return
       setEmployees(Array.isArray(data) ? data : [])
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // Ignore abort errors
-        return
-      }
+      if (err instanceof Error && err.name === 'AbortError') return
+      if (!mountedRef.current) return
       console.error('Failed to fetch employees:', err)
       setError(err instanceof Error ? err.message : 'Failed to load employees')
       setEmployees([])
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }, [search])
 
@@ -261,23 +262,14 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     }
   }
 
-  // Filter// Filter logic
-const filtered = employees.filter((e) => {
-  const q = search.toLowerCase()
-
-  const matchSearch =
-    !q ||
-    e.name.toLowerCase().includes(q) ||
-    e.email.toLowerCase().includes(q) ||
-    (e.employeeId ?? '').toLowerCase().includes(q)
-
-  const matchStatus =
-    statusFilter === 'All Status' ||
-    (statusFilter === 'Active' && e.status === 'active') ||
-    (statusFilter === 'Inactive' && e.status === 'inactive')
-
-  return matchSearch && matchStatus
-})
+  // Server already filters by search; only apply status filter client-side
+  const filtered = employees.filter((e) => {
+    return (
+      statusFilter === 'All Status' ||
+      (statusFilter === 'Active' && e.status === 'active') ||
+      (statusFilter === 'Inactive' && e.status === 'inactive')
+    )
+  })
 
 const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
 const safePage = Math.min(page, totalPages)
@@ -355,7 +347,7 @@ const rows = filtered.slice(
                   </td>
                 </tr>
               ) : rows.map(emp => (
-                <tr key={emp.employeeId ?? emp.id}>
+                <tr key={emp.id.toString()}>
                   <td style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{emp.employeeId}</td>
                   <td>
                     <div className="emp-cell">
@@ -442,7 +434,7 @@ const rows = filtered.slice(
             </div>
             <div className="emp-modal-body">
               <p style={{ margin: '0 0 20px', color: 'var(--text-primary)' }}>
-                Are you sure you want to remove {deleteEmployeeName}? This action cannot be undone.
+                Are you sure you want to remove <strong>{deleteEmployeeName}</strong>? This will also permanently delete all their submitted reports. This action cannot be undone.
               </p>
               <div className="emp-modal-footer">
                 <button

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
 import type { Target } from '../../../types'
@@ -37,40 +37,26 @@ export default function TargetsPage() {
     targetValue: '',
     month: '',
   })
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   async function load() {
     setLoading(true)
     try {
       const data = await apiFetch<Target[]>('/api/admin/targets')
+      if (!mountedRef.current) return
       setTargets(Array.isArray(data) ? data : [])
     } catch (err) {
+      if (!mountedRef.current) return
       showToast(err instanceof Error ? err.message : 'Failed to load targets', 'error')
       setTargets([])
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }
 
   useEffect(() => {
-    let cancelled = false
-
-    async function init() {
-      setLoading(true)
-      try {
-        const data = await apiFetch<Target[]>('/api/admin/targets')
-        if (cancelled) return
-        setTargets(Array.isArray(data) ? data : [])
-      } catch (err) {
-        if (cancelled) return
-        showToast(err instanceof Error ? err.message : 'Failed to load targets', 'error')
-        setTargets([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    init()
-    return () => { cancelled = true }
+    load()
   }, [])
 
   const rows = useMemo(() => {
@@ -199,7 +185,7 @@ export default function TargetsPage() {
                   type="number"
                   value={form.targetValue}
                   onChange={(e) => setForm((p) => ({ ...p, targetValue: e.target.value }))}
-                  min={0}
+                  min={0.01}
                   step="0.01"
                 />
               </div>

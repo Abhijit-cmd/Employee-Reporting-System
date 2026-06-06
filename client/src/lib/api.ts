@@ -102,7 +102,7 @@ export async function apiFetch<T = unknown>(
       const err = await response.json()
       errorMsg = err.message ?? errorMsg
     }
-    handleGlobalError(errorMsg, path)
+    handleGlobalError(new Error(errorMsg), path)
     throw new Error(errorMsg)
   }
 

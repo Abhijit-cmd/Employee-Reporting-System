@@ -38,7 +38,7 @@ async function main() {
         email: process.env.ADMIN_EMAIL,
         password: hashedPassword,
         roleId: adminRole.id,
-        phone: "9876543210",
+        phone: "+919876543210",
       },
     ],
     skipDuplicates: true,

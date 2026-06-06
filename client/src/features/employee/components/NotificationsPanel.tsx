@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   IconFileText,
   IconClock,
@@ -39,6 +39,8 @@ export default function NotificationsPanel() {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   const fetchNotifications = async () => {
     setLoading(true)
@@ -60,15 +62,17 @@ export default function NotificationsPanel() {
           time: relativeTime(r.createdAt),
         }
       })
+      if (!mountedRef.current) return
       setItems(mapped)
     } catch (err) {
+      if (!mountedRef.current) return
       console.error('Failed to load notifications:', err)
       const msg = err instanceof Error ? err.message : 'Failed to load notifications'
       setError(msg)
       showToast(msg, 'error')
       setItems([])
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }
 

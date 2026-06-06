@@ -54,7 +54,7 @@ export function saveUser(user: StoredUser): void {
   startProactiveRefresh()
 }
 
-export function getStoredUser(): any | null {
+export function getStoredUser(): StoredUser | null {
   try {
     const raw = safeGetItem(USER_KEY)
     if (!raw) return null
@@ -65,7 +65,7 @@ export function getStoredUser(): any | null {
       clearSession()
       return null
     }
-    return parsed as any
+    return parsed as StoredUser
   } catch (e) {
     console.warn('Corrupted user in localStorage, clearing it', e)
     clearSession()

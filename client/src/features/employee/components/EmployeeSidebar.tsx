@@ -13,7 +13,6 @@ import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
 import { APP_VERSION } from '../../../config'
 import type { Report } from '../../../types'
-import logo from '../../../public/logo.png';
 
 const navItems = [
   { id: 'home', label: 'Home', icon: 'home' },

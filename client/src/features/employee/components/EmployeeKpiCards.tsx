@@ -22,9 +22,7 @@ export default function EmployeeKpiCards() {
       try {
         const response = await apiFetch<any>('/api/reports/my-reports')
       if (cancelled) return
-const list: Report[] = Array.isArray(response)
-  ? response
-  : response?.data ?? []
+const list: Report[] = Array.isArray(response) ? response : []
 
 const now = new Date()
 const monthKey = `${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`

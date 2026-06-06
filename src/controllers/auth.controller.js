@@ -289,6 +289,11 @@ exports.refreshAccessToken = async (req, res) => {
     res.status(200).json({ message: "Token refreshed successfully" });
   } catch (error) {
     console.error(error);
+    try {
+      if (req.cookies.refreshToken) {
+        await prisma.refreshToken.deleteMany({ where: { token: req.cookies.refreshToken } });
+      }
+    } catch { /* ignore cleanup errors */ }
     res.status(403).json({ message: "Invalid refresh token" });
   }
 };
@@ -357,13 +362,11 @@ exports.getAllEmployees = async (req, res) => {
 
     // MySQL does not support mode:'insensitive' — rely on DB collation
     if (search) {
-      whereClause.AND = {
-        OR: [
-          { name: { contains: search } },
-          { email: { contains: search } },
-          { employeeId: { contains: search } },
-        ],
-      };
+      whereClause.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { employeeId: { contains: search } },
+      ];
     }
 
     const employees = await prisma.user.findMany({
