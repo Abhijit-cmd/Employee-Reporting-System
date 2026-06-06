@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ConstructionIllustration,
   IcoEye,
   IcoLock,
   IcoMail,
@@ -9,6 +8,23 @@ import {
   IcoSignIn,
   IcoUser,
 } from './icons/index'
+
+const GREETINGS = [
+  'Welcome Back!',
+  'वापस आपका स्वागत है!',
+  'স্বাগতম!',
+  'மீண்டும் வரவேற்கிறோம்!',
+  'తిరిగి స్వాగతం!',
+  'ਵਾਪਸ ਜੀ ਆਇਆਂ ਨੂੰ!',
+  'ফিরে স্বাগত!',
+  'ಮತ್ತೆ ಸ್ವಾಗತ!',
+  'Bienvenido de nuevo!',
+  'مرحباً بعودتك!',
+  'Bienvenue!',
+  'Willkommen zurück!',
+  'お帰りなさい!',
+  'Bem-vindo de volta!',
+]
 import { API_BASE_URL } from '../../config'
 import { showToast } from '../../lib/feedback'
 
@@ -17,6 +33,20 @@ import { saveUser } from '../../lib/auth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+
+  const [greetingIdx, setGreetingIdx] = useState(0)
+  const [greetingVisible, setGreetingVisible] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGreetingVisible(false)
+      setTimeout(() => {
+        setGreetingIdx((i) => (i + 1) % GREETINGS.length)
+        setGreetingVisible(true)
+      }, 400)
+    }, 2800)
+    return () => clearInterval(interval)
+  }, [])
 
   const [role,       setRole]       = useState<'admin' | 'employee'>('admin')
   const [email,      setEmail]      = useState('')
@@ -130,12 +160,14 @@ resetForm()
           <div className="login-logo">
             <img src="/logo.png" alt="ConstroMat" className="login-logo-img" />
           </div>
-          <div className="login-welcome">Welcome Back!</div>
+          <div
+            className="login-welcome"
+            style={{ opacity: greetingVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}
+          >
+            {GREETINGS[greetingIdx]}
+          </div>
           <div className="login-welcome-sub">
             Sign in to your account and continue managing reports efficiently.
-          </div>
-          <div className="login-illustration">
-            <ConstructionIllustration />
           </div>
         </div>
 

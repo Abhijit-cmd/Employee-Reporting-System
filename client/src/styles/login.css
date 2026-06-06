@@ -55,15 +55,7 @@
 }
 
 .login-illustration {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-}
-
-.login-illustration svg {
-  width: 100%;
-  max-width: 320px;
-  border-radius: 8px;
+  display: none;
 }
 
 /* ── Right panel ────────────────────────────────────────────────────────────── */
@@ -327,10 +319,6 @@
 
   .login-left {
     padding: 28px 24px;
-  }
-
-  .login-illustration {
-    display: none;
   }
 
   .login-right {
