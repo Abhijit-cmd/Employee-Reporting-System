@@ -5,26 +5,25 @@ const authMiddleware = (req, res, next) => {
 
     let token = null;
 
-    const authHeader = req.headers.authorization;
-
-    if (
-      authHeader &&
-      authHeader.startsWith("Bearer ")
-    ) {
-      token = authHeader.split(" ")[1];
+    // First check cookies (primary method)
+    if (req.cookies && req.cookies.accessToken) {
+      token = req.cookies.accessToken;
     }
 
-    // Support download URLs
-    if (!token && req.query.token) {
-      token = req.query.token;
+    // Fallback to Authorization header for backward compatibility
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
     }
 
+   
     if (!token) {
       return res.status(401).json({
         message: "No token provided",
       });
     }
-
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET
@@ -50,8 +49,5 @@ const authMiddleware = (req, res, next) => {
 
 }
 };
-
-  
-
 
 module.exports = authMiddleware;

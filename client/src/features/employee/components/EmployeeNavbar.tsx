@@ -61,7 +61,7 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
         onClick={() => onNavigate('settings')}
         aria-label="Open settings"
       >
-        <div className="avatar" style={{ background: '#7c3aed' }}>
+        <div className="avatar">
           {user?.name?.charAt(0) ?? 'U'}
         </div>
         <div className="profile-info">

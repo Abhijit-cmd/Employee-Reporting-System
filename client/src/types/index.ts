@@ -55,6 +55,24 @@ export interface ApiEmployee {
   role?: Role | string
 }
 
+export interface Target {
+  id: number
+  employeeId: number
+  targetTitle: string
+  description?: string | null
+  targetValue: number
+  achievedValue: number
+  targetMonth: string
+  targetYear: number
+  createdAt: string
+  updatedAt: string
+  employee?: {
+    id: number
+    name: string
+    employeeId: string | null
+  }
+}
+
 /** Helper to extract the role name regardless of shape */
 export function getRoleName(role: Role | string | undefined | null): string {
   if (!role) return ''

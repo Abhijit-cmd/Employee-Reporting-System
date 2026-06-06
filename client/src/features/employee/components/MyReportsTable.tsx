@@ -44,7 +44,7 @@ export default function MyReportsTable() {
     }
   }, [])
 
-  const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE))
+  const totalPages = Math.ceil(reports.length / PAGE_SIZE) || 1
   const rows = reports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
@@ -55,63 +55,60 @@ export default function MyReportsTable() {
           View all
         </button>
       </div>
+      <div style={{ overflowX: 'auto', minHeight: 200 }}>
+  {loading ? (
+    <p style={{ padding: 24, color: 'var(--text-muted)' }}>
+      Loading reports…
+    </p>
+  ) : error ? (
+    <p style={{ padding: 24, color: '#ef4444' }}>
+      {error}
+    </p>
+  ) : (
+    <table className="reports-table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Reviewed By</th>
+          <th>Status</th>
+          <th>Submitted On</th>
+          <th>Action</th>
+        </tr>
+      </thead>
 
-      <div style={{ overflowX: 'auto' }}>
-        {loading && (
-          <p style={{ padding: 24, color: 'var(--text-muted)' }}>Loading reports…</p>
+      <tbody>
+        {rows.length === 0 ? (
+          <tr>
+            <td colSpan={5} style={{ textAlign: 'center', padding: 24 }}>
+              No reports yet.
+            </td>
+          </tr>
+        ) : (
+          rows.map((r) => (
+            <tr key={r.id}>
+              <td>{formatMmyyyy(r.mmyyyy)}</td>
+              <td>{r.reviewedBy}</td>
+              <td>
+                <span className={`status-badge ${statusClass(r.reportStatus?.statusName ?? '')}`}>
+                  {r.reportStatus?.statusName}
+                </span>
+              </td>
+              <td>{formatDateTime(r.createdAt)}</td>
+              <td>
+                <button className="action-btn">
+                  {r.reportStatus?.statusName === 'Draft' ? <IconEdit /> : <IconEye />}
+                </button>
+              </td>
+            </tr>
+          ))
         )}
-        {error && !loading && (
-          <p style={{ padding: 24, color: '#ef4444' }}>{error}</p>
-        )}
-        {!loading && !error && (
-          <table className="reports-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Reviewed By</th>
-                <th>Status</th>
-                <th>Submitted On</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 24 }}>
-                    No reports yet.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ color: '#6b7280' }}>{formatMmyyyy(r.mmyyyy)}</td>
-                    <td style={{ fontWeight: 500 }}>{r.reviewedBy}</td>
-                    <td>
-                      <span
-                        className={`status-badge ${statusClass(r.reportStatus?.statusName ?? '')}`}
-                      >
-                        {r.reportStatus?.statusName}
-                      </span>
-                    </td>
-                    <td style={{ color: '#6b7280' }}>{formatDateTime(r.createdAt)}</td>
-                    <td>
-                      <button className="action-btn" type="button">
-                        {r.reportStatus?.statusName === 'Draft' ? (
-                          <IconEdit />
-                        ) : (
-                          <IconEye />
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      </tbody>
+    </table>
+  )}
+</div>
+            
 
-      {!loading && !error && reports.length > 0 && (
+{!loading && !error && reports.length > 0 && totalPages > 1 && (
         <div className="table-footer">
           <span className="table-count">
             Showing {rows.length} of {reports.length} reports

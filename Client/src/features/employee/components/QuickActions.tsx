@@ -7,7 +7,7 @@ interface Props {
 }
 
 const actions = [
-  { id: 1, icon: 'create', page: 'create-report',    color: '#e0e7ff', iconColor: '#6366f1', label: 'Create New Report', desc: 'Create and submit your monthly report' },
+  { id: 1, icon: 'create', page: 'create-report',    color: '#fdecea', iconColor: '#c62828', label: 'Create New Report', desc: 'Create and submit your monthly report' },
   { id: 2, icon: 'view',   page: 'monthly-reports',  color: '#d1fae5', iconColor: '#10b981', label: 'View My Reports',   desc: 'View all your submitted reports' },
   { id: 3, icon: 'draft',  page: 'monthly-reports',  color: '#fef3c7', iconColor: '#f59e0b', label: 'Draft Reports',     desc: 'Continue your draft reports' },
   { id: 4, icon: 'target', page: 'achievements',     color: '#fce7f3', iconColor: '#ec4899', label: 'Update Targets',    desc: 'View and update your targets' },

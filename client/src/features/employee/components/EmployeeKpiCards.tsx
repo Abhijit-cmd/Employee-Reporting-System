@@ -20,27 +20,35 @@ export default function EmployeeKpiCards() {
 
     async function load() {
       try {
-        const reports = await apiFetch<Report[]>('/api/reports/my-reports')
-        if (cancelled) return
+        const response = await apiFetch<any>('/api/reports/my-reports')
+const list: Report[] = Array.isArray(response)
+  ? response
+  : response?.data ?? []
 
-        const list = Array.isArray(reports) ? reports : []
-        const now = new Date()
-        const monthKey = `${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`
+const now = new Date()
+const monthKey = `${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`
 
-        setSubmitted(
-          list.filter((r) => r.reportStatus?.statusName === 'Submitted').length,
-        )
-        setPending(
-          list.filter((r) =>
-            ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? ''),
-          ).length,
-        )
-        setThisMonth(list.filter((r) => r.mmyyyy === monthKey).length)
+setSubmitted(
+  list.filter(
+    (r) => (r.reportStatus?.statusName || '').toLowerCase() === 'submitted',
+  ).length,
+)
+
+setPending(
+  list.filter((r) =>
+    ['pending', 'draft'].includes(
+      (r.reportStatus?.statusName ?? '').toLowerCase(),
+    ),
+  ).length,
+)
+
+setThisMonth(list.filter((r) => r.mmyyyy === monthKey).length)
       } catch {
         if (!cancelled) {
           setSubmitted(0)
           setPending(0)
           setThisMonth(0)
+          setLoading(false)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -65,8 +73,8 @@ export default function EmployeeKpiCards() {
       sub: 'This Year',
       subType: 'plain',
       icon: <IconFileText />,
-      iconBg: '#e0e7ff',
-      iconColor: '#6366f1',
+      iconBg: '#fdecea',
+      iconColor: '#c62828',
     },
     {
       label: 'Pending Reports',

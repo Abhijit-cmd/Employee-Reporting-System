@@ -20,9 +20,9 @@ export default function ReportsTable({ onNavigate }: Props) {
       setLoading(true)
       setError('')
       try {
-        const data = await apiFetch<Report[]>('/api/admin/reports')
+        const data = await apiFetch<any>('/api/admin/reports')
         if (!cancelled) {
-          const list = Array.isArray(data) ? data : []
+          const list = Array.isArray(data) ? data : (data.reports ?? [])
           setReports(list.slice(0, 5))
         }
       } catch (err) {

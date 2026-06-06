@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,7 +18,6 @@ import AdminQuickActions from './components/AdminQuickActions'
 import {
   IconFileText,
   IconClock,
-  IconTarget,
   IconUsers,
   IconBell,
 } from '../shared/icons'
@@ -30,11 +29,15 @@ interface Props {
   onNavigate: (page: string) => void
 }
 
+interface TargetAchievement {
+  employeeName: string
+  targetValue: number
+  achievedValue: number
+}
+
 const STATUS_COLORS: Record<string, string> = {
   Submitted: '#10b981',
   Pending: '#f59e0b',
-  Draft: '#6366f1',
-  Rejected: '#ef4444',
 }
 
 function NotifIcon({ type }: { type: string }) {
@@ -43,8 +46,6 @@ function NotifIcon({ type }: { type: string }) {
       return <IconFileText />
     case 'pending':
       return <IconClock />
-    case 'target':
-      return <IconTarget />
     case 'employee':
       return <IconUsers />
     default:
@@ -52,46 +53,26 @@ function NotifIcon({ type }: { type: string }) {
   }
 }
 
-function ReportOverviewCard({ reports }: { reports: Report[] }) {
-  const lineData = useMemo(() => {
-    const byDay = new Map<string, { submitted: number; pending: number }>()
-    for (const r of reports) {
-      const day = new Date(r.createdAt).toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-      })
-      const entry = byDay.get(day) ?? { submitted: 0, pending: 0 }
-      if (['Submitted', 'Approved'].includes(r.reportStatus?.statusName ?? '')) {
-        entry.submitted++
-      } else {
-        entry.pending++
-      }
-      byDay.set(day, entry)
-    }
-    return Array.from(byDay.entries())
-      .slice(-7)
-      .map(([day, counts]) => ({ day, ...counts }))
-  }, [reports])
-
+function TargetAchievementChart({ data }: { data: TargetAchievement[] }) {
   return (
     <div className="card">
       <div className="card-header">
-        <span className="card-title">Report Overview</span>
+        <span className="card-title">Target vs Achievement</span>
       </div>
       <div className="card-body" style={{ paddingTop: 8 }}>
-        {lineData.length === 0 ? (
-          <p style={{ padding: 24, color: 'var(--text-muted)' }}>No report data yet.</p>
+        {data.length === 0 ? (
+          <p style={{ padding: 24, color: 'var(--text-muted)' }}>No target data yet.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={lineData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="employeeName" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
               <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              <Line type="monotone" dataKey="submitted" stroke="#4f46e5" strokeWidth={2.5} name="Submitted" />
-              <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2.5} name="Pending" />
-            </LineChart>
+              <Bar dataKey="targetValue" fill="#f59e0b" name="Target" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="achievedValue" fill="#10b981" name="Achieved" radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         )}
       </div>
@@ -104,7 +85,9 @@ function ReportsByStatusCard({ reports }: { reports: Report[] }) {
     const counts = new Map<string, number>()
     for (const r of reports) {
       const name = r.reportStatus?.statusName ?? 'Unknown'
-      counts.set(name, (counts.get(name) ?? 0) + 1)
+      if (name === 'Submitted' || name === 'Pending') {
+        counts.set(name, (counts.get(name) ?? 0) + 1)
+      }
     }
     return Array.from(counts.entries()).map(([name, value]) => ({
       name,
@@ -223,25 +206,89 @@ function RecentNotificationsCard({
 
 export default function AdminDashboard({ onNavigate }: Props) {
   const [reports, setReports] = useState<Report[]>([])
+  const [targetAchievements, setTargetAchievements] = useState<TargetAchievement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    apiFetch<Report[]>('/api/admin/reports')
-      .then((data) => setReports(Array.isArray(data) ? data : []))
-      .catch(() => setReports([]))
+    let cancelled = false
+
+    async function load() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const [reportsData, targetData] = await Promise.all([
+          apiFetch<any>('/api/admin/reports'),
+          apiFetch<TargetAchievement[]>('/api/admin/dashboard/target-achievements'),
+        ])
+
+        if (cancelled) return
+
+        setReports(Array.isArray(reportsData.reports) ? reportsData.reports : [])
+        setTargetAchievements(Array.isArray(targetData) ? targetData : [])
+      } catch (err) {
+        if (cancelled) return
+
+        console.error('Admin Dashboard API Error:', err)
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to load dashboard data',
+        )
+
+        setReports([]) // safe fallback
+        setTargetAchievements([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
     <main className="page-content">
-      <KpiCards onNavigate={onNavigate} />
-      <div className="middle-row">
-        <ReportOverviewCard reports={reports} />
-        <ReportsByStatusCard reports={reports} />
-        <RecentNotificationsCard reports={reports} onNavigate={onNavigate} />
-      </div>
-      <div className="bottom-row">
-        <ReportsTable onNavigate={onNavigate} />
-        <AdminQuickActions onNavigate={onNavigate} />
-      </div>
+
+      {/* ERROR UI */}
+      {error && (
+        <div style={{ background: '#fee2e2', color: '#b91c1c', padding: 10 }}>
+          {error}
+        </div>
+      )}
+
+      {/* LOADING UI */}
+      {loading ? (
+        <div style={{ padding: 20 }}>Loading dashboard...</div>
+      ) : (
+        <>
+          {/* KPIs always visible */}
+          <KpiCards onNavigate={onNavigate} />
+
+          {/* middle section */}
+          <div className="middle-row">
+            <TargetAchievementChart data={targetAchievements} />
+            <ReportsByStatusCard reports={reports} />
+            <RecentNotificationsCard
+              reports={reports}
+              onNavigate={onNavigate}
+            />
+          </div>
+
+
+          {/* bottom section */}
+          <div className="bottom-row">
+            <ReportsTable onNavigate={onNavigate} />
+            <AdminQuickActions onNavigate={onNavigate} />
+          </div>
+        </>
+      )}
     </main>
+
   )
 }

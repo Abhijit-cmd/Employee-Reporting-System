@@ -1,31 +1,24 @@
-import { useState, useEffect } from 'react'
 import {
   IconDashboard,
   IconUsers,
   IconFileText,
-  IconClock,
   IconBell,
   IconBarChart,
-  IconTrendingUp,
   IconDownload,
   IconSettings,
   IconHelpCircle,
 } from '../../shared/icons'
-import { apiFetch } from '../../../lib/api'
 import { APP_VERSION } from '../../../config'
-import type { Report } from '../../../types'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', section: 'MANAGEMENT' },
   { id: 'employees', label: 'Employees', section: 'MANAGEMENT' },
   { id: 'reports', label: 'Reports', section: 'MANAGEMENT' },
-  { id: 'pending-reports', label: 'Pending Reports', section: 'MANAGEMENT', badgeKey: 'pending' as const },
   { id: 'targets', label: 'Targets', section: 'MANAGEMENT' },
   { id: 'notifications', label: 'Notifications', section: 'MANAGEMENT' },
   { id: 'analytics', label: 'Analytics', section: 'ANALYTICS' },
-  { id: 'performance', label: 'Performance', section: 'ANALYTICS' },
   { id: 'export-reports', label: 'Export Reports', section: 'SYSTEM' },
-  { id: 'settings', label: 'Settings', section: 'SYSTEM' },
+  { id: 'settings', label: 'Profile', section: 'SYSTEM' },
 ]
 
 function NavIcon({ id }: { id: string }) {
@@ -36,14 +29,10 @@ function NavIcon({ id }: { id: string }) {
       return <IconUsers />
     case 'reports':
       return <IconFileText />
-    case 'pending-reports':
-      return <IconClock />
     case 'notifications':
       return <IconBell />
     case 'analytics':
       return <IconBarChart />
-    case 'performance':
-      return <IconTrendingUp />
     case 'export-reports':
       return <IconDownload />
     case 'settings':
@@ -59,21 +48,7 @@ interface Props {
 }
 
 export default function AdminSidebar({ active, onNav }: Props) {
-  const [pendingCount, setPendingCount] = useState(0)
   const sections = ['MANAGEMENT', 'ANALYTICS', 'SYSTEM']
-
-  useEffect(() => {
-    apiFetch<Report[]>('/api/admin/reports')
-      .then((reports) => {
-        const list = Array.isArray(reports) ? reports : []
-        setPendingCount(
-          list.filter((r) =>
-            ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? ''),
-          ).length,
-        )
-      })
-      .catch(() => setPendingCount(0))
-  }, [])
 
   return (
     <aside className="sidebar">
@@ -96,9 +71,6 @@ export default function AdminSidebar({ active, onNav }: Props) {
                 >
                   <NavIcon id={item.id} />
                   {item.label}
-                  {item.badgeKey === 'pending' && pendingCount > 0 ? (
-                    <span className="nav-badge">{pendingCount}</span>
-                  ) : null}
                 </button>
               ))}
             </div>

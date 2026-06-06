@@ -7,7 +7,7 @@ interface Props {
 }
 
 const quickActions = [
-  { id: 1, icon: 'add-emp',    page: 'employees', color: '#e0e7ff', iconColor: '#6366f1', label: 'Add Employee',        desc: 'Add new employee to the system' },
+  { id: 1, icon: 'add-emp',    page: 'employees', color: '#fdecea', iconColor: '#c62828', label: 'Add Employee',        desc: 'Add new employee to the system' },
   { id: 2, icon: 'announce',   page: '',          color: '#fce7f3', iconColor: '#ec4899', label: 'Create Announcement', desc: 'Send announcement to employees' },
   { id: 3, icon: 'export',     page: 'reports',   color: '#d1fae5', iconColor: '#10b981', label: 'Export Reports',      desc: 'Export reports in Excel/PDF' },
   { id: 4, icon: 'manage-rep', page: 'reports',   color: '#fef3c7', iconColor: '#f59e0b', label: 'Manage Reports',      desc: 'View and manage all reports' },

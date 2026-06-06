@@ -1,89 +1,87 @@
-/**
- * Shared utility functions used across the frontend.
- */
-
-/** Return up-to-2-character initials from a full name */
-export function initials(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
-}
-
-/**
- * Format a MMYYYY string (e.g. "052025") into a readable label (e.g. "May 2025").
- * Returns the raw value if it cannot be parsed.
- */
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-
 export function formatMmyyyy(mmyyyy: string): string {
-  if (!mmyyyy || mmyyyy.length < 6) return mmyyyy ?? ''
-  const mm = parseInt(mmyyyy.slice(0, 2), 10)
-  const yyyy = mmyyyy.slice(2)
-  if (mm < 1 || mm > 12) return mmyyyy
-  return `${MONTH_NAMES[mm - 1]} ${yyyy}`
+  if (!mmyyyy || mmyyyy.length !== 6) return mmyyyy
+  const month = mmyyyy.slice(0, 2)
+  const year = mmyyyy.slice(2)
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+  const monthIndex = Number(month) - 1
+  if (monthIndex >= 0 && monthIndex <= 11) {
+    return `${monthNames[monthIndex]} ${year}`
+  }
+  return mmyyyy
 }
 
-/**
- * Format an ISO date string into a short date + time label.
- * e.g. "12 Jan 2025, 09:30"
- */
-export function formatDateTime(iso: string): string {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return iso
+export function formatDateTime(date: string | Date): string {
+  return new Date(date).toLocaleString()
+}
+
+export function initials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+export function relativeTime(date: string | Date): string {
+  const now = new Date()
+  const then = new Date(date)
+  const diff = now.getTime() - then.getTime()
+
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (minutes > 0) return `${minutes}m ago`
+  return 'Just now'
+}
+
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
   }
 }
 
-/**
- * Return a human-readable relative time string.
- * e.g. "2 hours ago", "3 days ago", "just now"
- */
-export function relativeTime(iso: string): string {
-  if (!iso) return ''
-  const diff = Date.now() - new Date(iso).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
-  const months = Math.floor(days / 30)
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`
-  const years = Math.floor(months / 12)
-  return `${years} year${years === 1 ? '' : 's'} ago`
+export function statusClass(status: string): string {
+  switch (status) {
+    case 'Submitted': return 'submitted'
+    case 'Pending': return 'pending'
+    default: return 'pending'
+  }
 }
 
-/**
- * Map a report status name to a CSS class suffix used for badge styling.
- */
-export function statusClass(status: string): string {
-  switch (status?.toLowerCase()) {
-    case 'submitted':
-      return 'submitted'
-    case 'pending':
-      return 'pending'
-    case 'draft':
-      return 'draft'
-    case 'rejected':
-      return 'rejected'
-    case 'approved':
-    case 'completed':
-      return 'submitted'
-    default:
-      return 'draft'
+export function safeSetItem(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+export function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch (e) {
+    return null
+  }
+}
+
+export function safeRemoveItem(key: string): void {
+  try {
+    localStorage.removeItem(key)
+  } catch (e) {
+    // Ignore errors
   }
 }

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
-import { initials } from '../../../lib/utils'
+import { initials, debounce } from '../../../lib/utils'
 import type { ApiEmployee } from '../../../types'
 
 interface Props {
@@ -79,7 +79,6 @@ function IcoTrash() {
   )
 }
 
-const DEPARTMENTS = ['All Departments', 'Sales', 'Marketing', 'Operations', 'Finance', 'Logistics', 'HR', 'IT']
 const STATUSES    = ['All Status', 'Active', 'Inactive']
 const PAGE_SIZE   = 10
 
@@ -100,7 +99,29 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !email.trim() || !password.trim()) return
+  
+    if (!name.trim()) {
+      showToast('Name is required', 'error')
+      return
+    }
+  
+    if (!email.trim()) {
+      showToast('Email is required', 'error')
+      return
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+    if (!emailRegex.test(email)) {
+      showToast('Enter a valid email address', 'error')
+      return
+    }
+  
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters', 'error')
+      return
+    }
+  
     setSubmitting(true)
     try {
       await apiFetch('/api/auth/register', {
@@ -149,7 +170,7 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
             <input className="emp-modal-input" type="tel" placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
           <div className="emp-modal-field">
-            <label className="emp-modal-label">Temporary Password *</label>
+            <label className="emp-modal-label">Password *</label>
             <input className="emp-modal-input" type="password" placeholder="Initial password" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
           <div className="emp-modal-footer">
@@ -164,71 +185,119 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const columns = [
+  'Employee ID',
+  'Name',
+  'Email',
+  'Status',
+  'Joined On',
+  'Actions'
+]
+
 export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props) {
   const [employees, setEmployees] = useState<ApiEmployee[]>([])
   const [search, setSearch] = useState(initialSearch)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [deptFilter, setDeptFilter] = useState('All Departments')
   const [statusFilter, setStatusFilter] = useState('All Status')
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteEmployeeName, setDeleteEmployeeName] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     setSearch(initialSearch)
   }, [initialSearch])
 
-  function fetchEmployees() {
+  const fetchEmployees = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError('')
-    apiFetch<ApiEmployee[]>('/api/auth/employees')
-      .then((data) => setEmployees(Array.isArray(data) ? data : []))
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to load employees')
-        setEmployees([])
-      })
-      .finally(() => setLoading(false))
-  }
+    try {
+      const data = await apiFetch<ApiEmployee[]>(`/api/auth/employees?search=${encodeURIComponent(search)}`, { signal })
+      setEmployees(Array.isArray(data) ? data : [])
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Ignore abort errors
+        return
+      }
+      console.error('Failed to fetch employees:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load employees')
+      setEmployees([])
+    } finally {
+      setLoading(false)
+    }
+  }, [search])
+
+  const debouncedFetch = useCallback(
+    debounce(() => {
+      fetchEmployees()
+    }, 300),
+    [fetchEmployees]
+  )
 
   useEffect(() => {
-    fetchEmployees()
-  }, [])
+    const abortController = new AbortController()
+    debouncedFetch()
+    return () => {
+      abortController.abort()
+    }
+  }, [search, debouncedFetch])
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: number | null) {
+    console.log("DELETE REQUEST ID:", id)
+
+    if (!id) {
+      showToast("Invalid employee ID", "error")
+      return
+    }
+
     setDeleting(true)
+
     try {
-      await apiFetch(`/api/auth/employees/${id}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/auth/employees/${id}`, {
+        method: 'DELETE',
+      })
+
+      console.log("DELETE RESPONSE:", res)
+
       showToast('Employee removed', 'success')
       setDeleteId(null)
+      setDeleteEmployeeName('')
       fetchEmployees()
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Delete failed', 'error')
+      console.error("DELETE ERROR FULL:", err)
+      showToast(err instanceof Error ? err.message : 'Failed to delete employee', 'error')
     } finally {
       setDeleting(false)
     }
   }
 
-  // Filter
-  const filtered = employees.filter((e) => {
-    const q = search.toLowerCase()
-    const matchSearch =
-      !q ||
-      e.name.toLowerCase().includes(q) ||
-      e.email.toLowerCase().includes(q) ||
-      (e.employeeId ?? '').toLowerCase().includes(q)
-    const matchStatus =
-      statusFilter === 'All Status' ||
-      (statusFilter === 'Active' && e.status === 'active') ||
-      (statusFilter === 'Inactive' && e.status === 'inactive')
-    return matchSearch && matchStatus
-  })
+  // Filter// Filter logic
+const filtered = employees.filter((e) => {
+  const q = search.toLowerCase()
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const safePage   = Math.min(page, totalPages)
-  const rows       = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const matchSearch =
+    !q ||
+    e.name.toLowerCase().includes(q) ||
+    e.email.toLowerCase().includes(q) ||
+    (e.employeeId ?? '').toLowerCase().includes(q)
 
+  const matchStatus =
+    statusFilter === 'All Status' ||
+    (statusFilter === 'Active' && e.status === 'active') ||
+    (statusFilter === 'Inactive' && e.status === 'inactive')
+
+  return matchSearch && matchStatus
+})
+
+const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+const safePage = Math.min(page, totalPages)
+
+const rows = filtered.slice(
+  (safePage - 1) * PAGE_SIZE,
+  safePage * PAGE_SIZE
+)
   return (
     <main className="page-content">
       <div className="card emp-page-card">
@@ -239,9 +308,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
             <div className="emp-page-sub">Add, view, edit or remove employees from the system.</div>
           </div>
           <div className="emp-page-actions">
-            <button className="cnr-btn-back emp-export-btn" type="button">
-              <IcoDownload /> Export
-            </button>
+           
             <button className="cnr-btn-submit" type="button" onClick={() => setShowModal(true)}>
               <IcoPlus /> Add Employee
             </button>
@@ -260,16 +327,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
               onChange={e => { setSearch(e.target.value); setPage(1) }}
             />
           </div>
-          <div className="emp-select-wrap">
-            <select
-              className="emp-select"
-              value={deptFilter}
-              onChange={e => { setDeptFilter(e.target.value); setPage(1) }}
-            >
-              {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
-            </select>
-            <IcoChevDown />
-          </div>
+ 
           <div className="emp-select-wrap">
             <select
               className="emp-select"
@@ -304,7 +362,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
+                  <td colSpan={columns.length} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 0' }}>
                     No employees found.
                   </td>
                 </tr>
@@ -313,7 +371,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
                   <td style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{emp.employeeId}</td>
                   <td>
                     <div className="emp-cell">
-                      <div className="emp-avatar" style={{ background: '#e0e7ff', color: '#6366f1' }}>
+                      <div className="emp-avatar">
                         {initials(emp.name)}
                       </div>
                       <span style={{ fontWeight: 500 }}>{emp.name}</span>
@@ -321,7 +379,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
                   </td>
                   <td style={{ color: 'var(--text-muted)' }}>{emp.email}</td>
                   <td>
-                    <span className={`status-badge ${emp.status === 'active' ? 'submitted' : 'draft'}`}>
+                    <span className={`status-badge ${emp.status === 'active' ? 'active' : 'inactive'}`}>
                       {emp.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -333,7 +391,10 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
                       className="action-btn emp-delete-btn"
                       type="button"
                       aria-label={`Delete ${emp.name}`}
-                      onClick={() => setDeleteId(emp.id)}
+                      onClick={() => {
+                        setDeleteId(emp.id)
+                        setDeleteEmployeeName(emp.name)
+                      }}
                     >
                       <IcoTrash />
                     </button>
@@ -385,21 +446,21 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
 
       {/* ── Delete confirmation ──────────────────────────── */}
       {deleteId !== null && (
-        <div className="emp-modal-overlay" onClick={() => setDeleteId(null)}>
+        <div className="emp-modal-overlay" onClick={() => { setDeleteId(null); setDeleteEmployeeName(''); }}>
           <div className="emp-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="emp-modal-header">
               <span className="emp-modal-title">Remove Employee</span>
-              <button type="button" className="emp-modal-close" onClick={() => setDeleteId(null)}><IcoX /></button>
+              <button type="button" className="emp-modal-close" onClick={() => { setDeleteId(null); setDeleteEmployeeName(''); }}><IcoX /></button>
             </div>
             <div className="emp-modal-body">
               <p style={{ margin: '0 0 20px', color: 'var(--text-primary)' }}>
-                Are you sure you want to remove this employee? This action cannot be undone.
+                Are you sure you want to remove {deleteEmployeeName}? This action cannot be undone.
               </p>
               <div className="emp-modal-footer">
                 <button
                   type="button"
                   className="cnr-btn-back"
-                  onClick={() => setDeleteId(null)}
+                  onClick={() => { setDeleteId(null); setDeleteEmployeeName(''); }}
                   disabled={deleting}
                 >
                   Cancel

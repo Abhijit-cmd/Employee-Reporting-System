@@ -1,22 +1,18 @@
 import { API_BASE_URL } from '../config'
-import { getToken } from './auth'
 
 /**
- * Download a file from a protected API endpoint using the accessToken.
+ * Download a file from a protected API endpoint using httpOnly cookies.
  * Triggers a browser file download.
  */
 export async function downloadWithToken(
   path: string,
   filename?: string,
 ): Promise<void> {
-  const token = getToken()
   const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      Authorization: token ? `Bearer ${token}` : '',
-    },
+    credentials: 'include', // Include httpOnly cookies
   })
 
   if (!response.ok) {

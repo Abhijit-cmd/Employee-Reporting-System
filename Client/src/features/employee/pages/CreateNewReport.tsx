@@ -1,25 +1,71 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { IconFileText, IconPlus } from '../../shared/icons'
 import { apiFetch } from '../../../lib/api'
 import { getStoredUser } from '../../../lib/auth'
 import { showToast } from '../../../lib/feedback'
 
 const DRAFT_KEY = 'report_draft'
+const DRAFT_VERSION = 1
+const COMPANY_NAME = 'Indithrive Infratech Pvt LTD'
 
 interface ReportDraft {
+  version: number
   mmyyyy: string
   businessOwner: string
   preparedBy: string
   reviewedBy: string
-  customersRegistered: string | number
-  suppliersRegistered: string | number
-  newBrandProducts: string | number
-  successStories: string | number
-  websiteVisitors: string | number
+  customersRegistered: string
+  suppliersRegistered: string
+  newBrandProducts: string
+  successStories: string
+  websiteVisitors: string
   challenges: string
   salesBooking: string
   targetVsAchievement: string
   accomplishments: string
+}
+
+function safeSetItem(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch (e) {
+    return null
+  }
+}
+
+function isValidDraft(d: any): d is ReportDraft {
+  return (
+    d &&
+    typeof d === 'object' &&
+    d.version === DRAFT_VERSION &&
+    typeof d.mmyyyy === 'string' &&
+    typeof d.businessOwner === 'string' &&
+    typeof d.preparedBy === 'string' &&
+    typeof d.reviewedBy === 'string' &&
+    typeof d.customersRegistered === 'string' &&
+    typeof d.suppliersRegistered === 'string' &&
+    typeof d.newBrandProducts === 'string' &&
+    typeof d.successStories === 'string' &&
+    typeof d.websiteVisitors === 'string' &&
+    typeof d.challenges === 'string' &&
+    typeof d.salesBooking === 'string' &&
+    typeof d.targetVsAchievement === 'string' &&
+    typeof d.accomplishments === 'string'
+  )
+}
+
+const toNumber = (v: string): number => {
+  const n = Number(v)
+  return isNaN(n) ? 0 : n
 }
 
 interface Props {
@@ -53,6 +99,7 @@ export default function CreateNewReport({ onBack }: Props) {
   const [targetVsAchievement, setTargetVsAchievement] = useState('')
   const [accomplishments, setAccomplishments] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const MAX = 1000
 
@@ -60,28 +107,106 @@ export default function CreateNewReport({ onBack }: Props) {
     const user = getStoredUser()
     if (!user) return
     try {
-      const raw = localStorage.getItem(`${DRAFT_KEY}_${user.id}`)
+      const raw = safeGetItem(`${DRAFT_KEY}_${user.id}`)
       if (!raw) return
       const draft = JSON.parse(raw) as ReportDraft
-      setMmyyyy(draft.mmyyyy ?? '')
-      setBusinessOwner(draft.businessOwner ?? '')
-      setPreparedBy(draft.preparedBy ?? '')
-      setReviewedBy(draft.reviewedBy ?? '')
-      setCustomersRegistered(String(draft.customersRegistered ?? ''))
-      setSuppliersRegistered(String(draft.suppliersRegistered ?? ''))
-      setNewBrandProducts(String(draft.newBrandProducts ?? ''))
-      setSuccessStories(String(draft.successStories ?? ''))
-      setWebsiteVisitors(String(draft.websiteVisitors ?? ''))
-      setChallenges(draft.challenges ?? '')
-      setSalesBooking(draft.salesBooking ?? '')
-      setTargetVsAchievement(draft.targetVsAchievement ?? '')
-      setAccomplishments(draft.accomplishments ?? '')
-    } catch {
-      /* ignore corrupted draft */
+      // Integrity check
+      if (!isValidDraft(draft)) {
+        throw new Error('Invalid draft structure')
+      }
+      setMmyyyy(draft.mmyyyy)
+      setBusinessOwner(draft.businessOwner)
+      setPreparedBy(draft.preparedBy)
+      setReviewedBy(draft.reviewedBy)
+      setCustomersRegistered(draft.customersRegistered)
+      setSuppliersRegistered(draft.suppliersRegistered)
+      setNewBrandProducts(draft.newBrandProducts)
+      setSuccessStories(draft.successStories)
+      setWebsiteVisitors(draft.websiteVisitors)
+      setChallenges(draft.challenges)
+      setSalesBooking(draft.salesBooking)
+      setTargetVsAchievement(draft.targetVsAchievement)
+      setAccomplishments(draft.accomplishments)
+    } catch (e) {
+      console.warn('Failed to load draft:', e)
     }
   }, [])
 
-  const payload = {
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
+
+  function validateForm(): string | null {
+    if (!mmyyyy) return 'Please select a month and year'
+  
+    if (!businessOwner.trim()) return 'Please fill all required fields before submitting the form.'
+  
+    if (!preparedBy.trim()) return 'Please fill all required fields before submitting the form.'
+  
+    if (!reviewedBy.trim()) return 'Please fill all required fields before submitting the form.'
+  
+    const validateNumber = (val: string): boolean => {
+      const num = Number(val)
+  
+      return (
+        val.trim() !== '' &&
+        !isNaN(num) &&
+        Number.isFinite(num) &&
+        num >= 0
+      )
+    }
+  
+    if (!validateNumber(customersRegistered))
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!validateNumber(suppliersRegistered))
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!validateNumber(newBrandProducts))
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!validateNumber(successStories))
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!validateNumber(websiteVisitors))
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!challenges.trim())
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!salesBooking.trim())
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!targetVsAchievement.trim())
+      return 'Please fill all required fields before submitting the form.'
+  
+    if (!accomplishments.trim())
+      return 'Please fill all required fields before submitting the form.'
+  
+    return null
+  }
+
+  const submitPayload = {
+    mmyyyy,
+    businessOwner,
+    preparedBy,
+    reviewedBy,
+    customersRegistered: toNumber(customersRegistered),
+    suppliersRegistered: toNumber(suppliersRegistered),
+    newBrandProducts: toNumber(newBrandProducts),
+    successStories: toNumber(successStories),
+    websiteVisitors: toNumber(websiteVisitors),
+    challenges,
+    salesBooking,
+    targetVsAchievement,
+    accomplishments,
+  }
+
+  const draftPayload: ReportDraft = {
+    version: DRAFT_VERSION,
     mmyyyy,
     businessOwner,
     preparedBy,
@@ -99,42 +224,84 @@ export default function CreateNewReport({ onBack }: Props) {
 
   async function submitReport(successMessage: string) {
     if (submitting) return
+  
+    const validationError = validateForm()
+  
+    if (validationError) {
+      showToast(
+        'Submission failed - Please fill all required fields before submitting the form.',
+        'error'
+      )
+      return
+    }
+  
     setSubmitting(true)
+    abortControllerRef.current = new AbortController()
     try {
       await apiFetch('/api/reports/create', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(submitPayload),
+        signal: abortControllerRef.current.signal,
       })
       const user = getStoredUser()
       if (user) {
-        localStorage.removeItem(`${DRAFT_KEY}_${user.id}`)
+        try {
+          localStorage.removeItem(`${DRAFT_KEY}_${user.id}`)
+        } catch (e) {
+          // Ignore any errors when removing draft
+        }
       }
       showToast(successMessage, 'success')
       onBack()
     } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : 'Request failed',
-        'error',
-      )
+      if (err instanceof Error && err.name !== 'AbortError') {
+        showToast(
+          'Submission failed — draft kept locally',
+          'error',
+        )
+      }
     } finally {
       setSubmitting(false)
+      abortControllerRef.current = null
     }
   }
 
   function saveDraftLocally() {
     const user = getStoredUser()
     if (!user) return
-    localStorage.setItem(`${DRAFT_KEY}_${user.id}`, JSON.stringify(payload))
+    const ok = safeSetItem(
+      `${DRAFT_KEY}_${user.id}`,
+      JSON.stringify(draftPayload)
+    )
+    if (!ok) {
+      showToast('Draft could not be saved (storage issue)', 'error')
+      return
+    }
     showToast('Draft saved on this device', 'success')
+  }
+
+  function toMonthValue(v: string): string {
+    if (!v || v.length < 6) return ''
+    const mm = v.slice(0, 2)
+    const yyyy = v.slice(2, 6)
+    if (!/^\d{2}$/.test(mm) || !/^\d{4}$/.test(yyyy)) return ''
+    return `${yyyy}-${mm}`
+  }
+
+  function fromMonthValue(v: string): string {
+    if (!v) return ''
+    const [yyyy, mm] = v.split('-')
+    if (!/^\d{4}$/.test(yyyy) || !/^\d{2}$/.test(mm)) return ''
+    return `${mm}${yyyy}`
   }
 
   return (
     <main className="page-content"> 
       <div className="card cnr-header-card">
         <div className="cnr-header-top">
-          <h2 className="cnr-title">
-            Monthly Overview – Indithrive Infratech Pvt LTD
-          </h2>
+        <h2 className="cnr-title">
+            Monthly Overview - {COMPANY_NAME}
+        </h2>
           <span className="cnr-required-note">* Required Fields</span>
         </div>
         <div className="cnr-header-fields">
@@ -145,11 +312,9 @@ export default function CreateNewReport({ onBack }: Props) {
             <div className="cnr-input-wrap">
               <input
                 className="cnr-input"
-                type="text"
-                placeholder="MMYYYY"
-                value={mmyyyy}
-                onChange={(e) => setMmyyyy(e.target.value)}
-                maxLength={6}
+                type="month"
+                value={toMonthValue(mmyyyy)}
+                onChange={(e) => setMmyyyy(fromMonthValue(e.target.value))}
               />
             </div>
           </div>
@@ -219,13 +384,13 @@ export default function CreateNewReport({ onBack }: Props) {
               },
               {
                 label: 'New Success Stories :',
-                req: false,
+                req: true,
                 val: successStories,
                 set: setSuccessStories,
               },
               {
                 label: 'No of Visits to new site :',
-                req: false,
+                req: true,
                 val: websiteVisitors,
                 set: setWebsiteVisitors,
               },
@@ -235,15 +400,31 @@ export default function CreateNewReport({ onBack }: Props) {
                   {label} {req && <span className="req">*</span>}
                 </label>
                 <div className="cnr-number-wrap">
-                  <input
-                    className="cnr-input cnr-number"
-                    type="number"
-                    placeholder="Enter number"
-                    value={val}
-                    onChange={(e) => set(e.target.value)}
-                    min={0}
-                  />
-                </div>
+  <input
+    className="cnr-input cnr-number"
+    type="number"
+    placeholder="Enter number"
+    value={val}
+    onChange={(e) => set(e.target.value)}
+    min={0}
+  />
+
+  <div className="cnr-spinners">
+    <button
+      type="button"
+      onClick={() => set(String(Math.max(0, Number(val || 0) + 1)))}
+    >
+      ▲
+    </button>
+
+    <button
+      type="button"
+      onClick={() => set(String(Math.max(0, Number(val || 0) - 1)))}
+    >
+      ▼
+    </button>
+  </div>
+</div>
               </div>
             ))}
           </div>
@@ -253,7 +434,7 @@ export default function CreateNewReport({ onBack }: Props) {
           <div className="cnr-card-header">
             <SectionBadge num={2} />
             <span className="cnr-card-title">
-              Customer/Supplier/logistics/Finance Challenges
+            Customer/Supplier/logistics/Finance Challenges <span className="req">*</span>
             </span>
           </div>
           <div className="cnr-card-body cnr-textarea-body">
@@ -277,7 +458,7 @@ export default function CreateNewReport({ onBack }: Props) {
           <div className="cnr-card-body">
             <div className="cnr-textarea-section">
               <div className="cnr-textarea-label">
-                Sales Booking Productwise Quantity &amp; Value
+              Sales Booking Productwise Quantity & Value &amp; Value<span className="req">*</span>
               </div>
               <textarea
                 className="cnr-textarea"
@@ -288,7 +469,8 @@ export default function CreateNewReport({ onBack }: Props) {
               <CharCount value={salesBooking} max={MAX} />
             </div>
             <div className="cnr-textarea-section">
-              <div className="cnr-textarea-label">Target Vs Achievement</div>
+              <div className="cnr-textarea-label">
+              Target Vs Achievement <span className="req">*</span></div>
               <textarea
                 className="cnr-textarea"
                 placeholder="Enter details..."
@@ -306,7 +488,7 @@ export default function CreateNewReport({ onBack }: Props) {
           <div className="cnr-card-header">
             <SectionBadge num={4} />
             <span className="cnr-card-title">
-              Your top accomplishments YTD (and any comments on your strengths)
+              Your top accomplishments YTD (and any comments on your strengths)<span className="req">*</span>
             </span>
           </div>
           <div className="cnr-card-body cnr-textarea-body">

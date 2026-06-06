@@ -1,91 +1,145 @@
 const prisma = require("../prisma/prismaClient");
+const PDFDocument = require("pdfkit");
 
-exports.getAdminProfile = async (req, res) => {
+// Helper function for standard API responses
+const successResponse = (res, data, status = 200) => {
+  return res.status(status).json({ success: true, data });
+};
 
+const errorResponse = (res, message, status = 500) => {
+  return res.status(status).json({ success: false, message });
+};
+
+exports.getDashboardSummary = async (req, res) => {
   try {
-    const admin = await prisma.user.findUnique({
-      where: {id: req.user.id,},
-      include: {role: true,},
+    // Use Promise.all for parallel queries
+    const [totalEmployees, totalReports, reportsByStatus] = await Promise.all([
+      // Count total employees (with Employee role)
+      prisma.user.count({
+        where: {
+          role: { roleName: "Employee" },
+        },
+      }),
+      // Count total reports
+      prisma.report.count(),
+      // Get count of reports by status
+      prisma.reportStatus.findMany({
+        include: {
+          _count: {
+            select: { reports: true },
+          },
+        },
+      }),
+    ]);
+
+    // Transform the status data for easy use
+    const statusMap = new Map();
+    reportsByStatus.forEach(status => {
+      statusMap.set(status.statusName, status._count.reports);
     });
 
-    if (!admin) {
-      return res.status(404).json({
-        message: "Admin not found",
-      });
-    }
-    res.status(200).json(admin);
-  }
-  catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch admin profile",
+    const submittedReports = statusMap.get("Submitted") || 0;
+    const pendingReports = statusMap.get("Pending") || 0;
+
+    return successResponse(res, {
+      totalEmployees,
+      totalReports,
+      submittedReports,
+      pendingReports,
     });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch dashboard summary");
   }
 };
 
-
-exports.getAllReports = async (req, res) => {
-
+exports.getEmployeeTargetAchievements = async (req, res) => {
   try {
-    const reports = await prisma.report.findMany({
-      include: { user: true, reportStatus: true, },
-      orderBy: {createdAt: "desc",},
-    });
-    res.status(200).json(reports);
-  } 
-  catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch reports",
+    // Fetch targets with employee data and calculate achieved
+    const targets = await prisma.target.findMany({
+      include: {
+        employee: true,
+      },
     });
 
+    // Transform the data to what the frontend needs
+    const data = targets.map(target => ({
+      employeeName: target.employee.name,
+      targetValue: target.targetValue,
+      achievedValue: target.achievedValue,
+    }));
+
+    return successResponse(res, data);
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch target achievements");
   }
-
 };
 
 exports.getReportById = async (req, res) => {
-
   try {
     const reportId = Number(req.params.id);
     const report = await prisma.report.findUnique({
-      where: {id: reportId,},
-      include: { user: true, reportStatus: true,},
+      where: { id: reportId },
+      include: { user: true, reportStatus: true },
     });
 
     if (!report) {
-      return res.status(404).json({
-        message: "Report not found",
-      });
+      return errorResponse(res, "Report not found", 404);
     }
-    res.status(200).json(report);
-  } 
-  catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch report",
-    });
+    return successResponse(res, report);
+  } catch (error) {
+    return errorResponse(res, "Failed to fetch report");
   }
 };
-const PDFDocument = require("pdfkit");
+
+exports.getAllReports = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const skip = (page - 1) * pageSize;
+
+    const [reports, total] = await Promise.all([
+      prisma.report.findMany({
+        include: { user: true, reportStatus: true },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+      }),
+      prisma.report.count(),
+    ]);
+
+    return successResponse(res, {
+      reports,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
+  } catch (error) {
+    return errorResponse(res, "Failed to fetch reports");
+  }
+};
 
 exports.downloadReport = async (req, res) => {
   try {
     const reportId = Number(req.params.id);
     const report = await prisma.report.findUnique({
-      where: {id: reportId,},
-      include: {user: true,reportStatus: true,},
+      where: { id: reportId },
+      include: { user: true, reportStatus: true },
     });
 
     if (!report) {
-      return res.status(404).json({
-        message: "Report not found",
-      });
+      return errorResponse(res, "Report not found", 404);
     }
     const doc = new PDFDocument();
-    const fileName =`report-${report.id}.pdf`;
+    const fileName = `report-${report.id}.pdf`;
 
-    res.setHeader("Content-Type","application/pdf");
-    res.setHeader("Content-Disposition",`attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     doc.pipe(res);
     // TITLE
-    doc.fontSize(20).text("Monthly Report", {align: "center",});
+    doc.fontSize(20).text("Monthly Report", { align: "center" });
     doc.moveDown();
 
     // EMPLOYEE DETAILS
@@ -128,38 +182,30 @@ exports.downloadReport = async (req, res) => {
     doc.fontSize(16).text("Accomplishments");
     doc.fontSize(12).text(report.accomplishments || "");
     doc.end();
-
-  } 
-  catch (error) {
+  } catch (error) {
     console.log(error);
-    res.status(500).json({ 
-      message: "Failed to download report",
-      
-    });
+    return errorResponse(res, "Failed to download report");
   }
 };
 
 exports.downloadAllReports = async (req, res) => {
-
   try {
-
     const reports = await prisma.report.findMany({
-        include: {user: true, reportStatus: true,},
-        orderBy: {createdAt: "desc",},
+      include: { user: true, reportStatus: true },
+      take: 10,
+    });
 
-      });
-
-    const PDFDocument =require("pdfkit");
-    const doc =new PDFDocument({margin: 40,});
-    res.setHeader("Content-Type","application/pdf");
+    const PDFDocument = require("pdfkit");
+    const doc = new PDFDocument({ margin: 40 });
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="all-reports.pdf"');
     doc.pipe(res);
 
     // TITLE
-    doc.fontSize(22).text("All Employee Reports", {align: "center",});
+    doc.fontSize(22).text("All Employee Reports", { align: "center" });
     doc.moveDown(2);
     reports.forEach((report, index) => {
-      doc.fontSize(18).text(`Report ${index + 1}`, {underline: true,});
+      doc.fontSize(18).text(`Report ${index + 1}`, { underline: true });
       doc.moveDown();
       doc.fontSize(12);
       doc.text(`Employee Name: ${report.user?.name}`);
@@ -171,7 +217,7 @@ exports.downloadAllReports = async (req, res) => {
       doc.text(`Status: ${report.reportStatus?.statusName}`);
       doc.moveDown();
 
-      doc.text( `Customers Registered: ${report.customersRegistered}`);
+      doc.text(`Customers Registered: ${report.customersRegistered}`);
       doc.text(`Suppliers Registered: ${report.suppliersRegistered}`);
       doc.text(`New Brand Products: ${report.newBrandProducts}`);
       doc.text(`Success Stories: ${report.successStories}`);
@@ -194,23 +240,14 @@ exports.downloadAllReports = async (req, res) => {
       doc.text(report.accomplishments || "");
 
       // NEXT PAGE
-
       if (index !== reports.length - 1) {
         doc.addPage();
       }
-
     });
 
     doc.end();
-
   } catch (error) {
-
     console.log(error);
-
-    res.status(500).json({
-      message: "Failed to download reports",
-    });
-
+    return errorResponse(res, "Failed to download reports");
   }
-
 };

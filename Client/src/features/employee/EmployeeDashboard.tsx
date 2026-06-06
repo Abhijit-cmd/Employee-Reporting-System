@@ -65,7 +65,7 @@ function ReportsOverviewCard({ reports }: { reports: Report[] }) {
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              <Line type="monotone" dataKey="submitted" stroke="#4f46e5" strokeWidth={2.5} name="Submitted" />
+              <Line type="monotone" dataKey="submitted" stroke="#c62828" strokeWidth={2.5} name="Submitted" />
               <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2.5} name="Pending" />
             </LineChart>
           </ResponsiveContainer>
@@ -94,25 +94,75 @@ function LatestAnnouncement() {
 
 export default function EmployeeDashboard({ onNavigate }: Props) {
   const [reports, setReports] = useState<Report[]>([])
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    apiFetch<Report[]>('/api/reports/my-reports')
-      .then((data) => setReports(Array.isArray(data) ? data : []))
-      .catch(() => setReports([]))
-  }, [])
+useEffect(() => {
+  let cancelled = false
 
-  return (
-    <main className="page-content">
-      <EmployeeKpiCards />
-      <div className="emp-middle-row">
-        <ReportsOverviewCard reports={reports} />
-        <NotificationsPanel />
+  async function load() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const data = await apiFetch<Report[]>('/api/reports/my-reports')
+
+      if (cancelled) return
+
+      setReports(Array.isArray(data) ? data : [])
+    } catch (err) {
+      if (cancelled) return
+
+      console.error('Employee Dashboard API Error:', err)
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load employee dashboard data',
+      )
+
+      setReports([])
+    } finally {
+      if (!cancelled) setLoading(false)
+    }
+  }
+
+  load()
+
+  return () => {
+    cancelled = true
+  }
+}, [])
+
+return (
+  <main className="page-content">
+
+    {error && (
+      <div style={{ background: '#fee2e2', color: '#b91c1c', padding: 10 }}>
+        {error}
       </div>
-      <div className="emp-bottom-row">
-        <MyReportsTable />
-        <QuickActions onNavigate={onNavigate} />
-      </div>
-      <LatestAnnouncement />
-    </main>
-  )
+    )}
+
+    {loading ? (
+      <div style={{ padding: 20 }}>Loading employee dashboard...</div>
+    ) : (
+      <>
+        <EmployeeKpiCards />
+
+        <div className="emp-middle-row">
+          <ReportsOverviewCard reports={reports} />
+          <NotificationsPanel />
+        </div>
+
+        <div className="emp-bottom-row">
+          <MyReportsTable />
+          <QuickActions onNavigate={onNavigate} />
+        </div>
+
+        <LatestAnnouncement />
+      </>
+    )}
+
+  </main>
+)
 }

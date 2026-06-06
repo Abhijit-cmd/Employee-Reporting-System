@@ -10,8 +10,10 @@ import {
   IconHelpCircle,
 } from '../../shared/icons'
 import { apiFetch } from '../../../lib/api'
+import { showToast } from '../../../lib/feedback'
 import { APP_VERSION } from '../../../config'
 import type { Report } from '../../../types'
+import logo from '../../../public/logo.png';
 
 const navItems = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -20,7 +22,7 @@ const navItems = [
   { id: 'create-report', label: 'Create New Report', icon: 'plus' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', badgeKey: 'pending' as const },
   { id: 'announcements', label: 'Announcements', icon: 'announce' },
-  { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'settings', label: 'Profile', icon: 'settings' },
 ]
 
 function NavIcon({ id }: { id: string }) {
@@ -50,19 +52,33 @@ interface Props {
 }
 
 export default function EmployeeSidebar({ active, onNav }: Props) {
-  const [pendingCount, setPendingCount] = useState(0)
+  const [pendingCount, setPendingCount] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const fetchPendingCount = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const reports = await apiFetch<Report[]>('/api/reports/my-reports')
+      const list = Array.isArray(reports) ? reports : []
+      const count = list.filter((r) =>
+        ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? ''),
+      ).length
+      setPendingCount(count)
+    } catch (err) {
+      console.error('Failed to load pending count:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to load pending count'
+      setError(msg)
+      showToast(msg, 'error')
+      setPendingCount(null)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    apiFetch<Report[]>('/api/reports/my-reports')
-      .then((reports) => {
-        const list = Array.isArray(reports) ? reports : []
-        setPendingCount(
-          list.filter((r) =>
-            ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? ''),
-          ).length,
-        )
-      })
-      .catch(() => setPendingCount(0))
+    fetchPendingCount()
   }, [])
 
   return (
@@ -80,9 +96,23 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
           >
             <NavIcon id={item.icon} />
             {item.label}
-            {item.badgeKey === 'pending' && pendingCount > 0 ? (
-              <span className="nav-badge">{pendingCount}</span>
-            ) : null}
+            {item.badgeKey === 'pending' && (
+              loading ? (
+                <span className="nav-badge" style={{ background: '#9ca3af' }}>—</span>
+              ) : error ? (
+                <span
+                  className="nav-badge"
+                  style={{ background: '#f87171' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fetchPendingCount()
+                  }}
+                  title="Retry"
+                >!</span>
+              ) : pendingCount !== null && pendingCount > 0 ? (
+                <span className="nav-badge">{pendingCount}</span>
+              ) : null
+            )}
           </button>
         ))}
       </nav>

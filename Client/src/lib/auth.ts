@@ -1,94 +1,119 @@
 import type { StoredUser } from '../types'
+import { apiFetch } from './api'
+import { safeSetItem, safeGetItem, safeRemoveItem } from './utils'
 
 // Keys must match what LoginPage stores
-const USER_KEY         = 'user'
-const ACCESS_TOKEN_KEY = 'accessToken'
-const REFRESH_TOKEN_KEY = 'refreshToken'
+const USER_KEY = 'user'
+let refreshInterval: NodeJS.Timeout | null = null
 
-interface JwtPayload {
-  exp?: number
-  id?: number
-  role?: string | { roleName?: string }
-}
-
-function decodeJwt(token: string): JwtPayload | null {
+// Function to refresh tokens
+async function refreshTokens(): Promise<boolean> {
   try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-  } catch {
-    return null
+    await apiFetch('/api/auth/refresh', {
+      method: 'POST',
+    })
+    return true
+  } catch (error) {
+    console.error('Token refresh failed:', error)
+    return false
   }
 }
 
-export function isTokenExpired(token: string): boolean {
-  const payload = decodeJwt(token)
-  if (!payload?.exp) return true
-  return payload.exp * 1000 <= Date.now()
+// Function to start proactive refresh
+function startProactiveRefresh(): void {
+  // Clear existing interval if any
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+
+  // Run check every 10 minutes (600,000 ms)
+  refreshInterval = setInterval(async () => {
+    if (getStoredUser()) {
+      const success = await refreshTokens()
+      if (!success) {
+        // If refresh fails, try once more
+        const retrySuccess = await refreshTokens()
+        if (!retrySuccess) {
+          logout()
+        }
+      }
+    }
+  }, 10 * 60 * 1000)
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY)
-}
-
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
-}
-
-export function saveTokens(accessToken: string, refreshToken: string): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+// Stop proactive refresh
+function stopProactiveRefresh(): void {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
 }
 
 export function saveUser(user: StoredUser): void {
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  safeSetItem(USER_KEY, JSON.stringify(user))
+  startProactiveRefresh()
 }
 
-export function getStoredUser(): StoredUser | null {
+export function getStoredUser(): any | null {
   try {
-    const raw = localStorage.getItem(USER_KEY)
+    const raw = safeGetItem(USER_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as StoredUser
-  } catch {
+    const parsed = JSON.parse(raw)
+    // Basic validation
+    if (!parsed || typeof parsed !== 'object' || !parsed.role) {
+      console.warn('Corrupted user in localStorage, clearing it')
+      clearSession()
+      return null
+    }
+    return parsed as any
+  } catch (e) {
+    console.warn('Corrupted user in localStorage, clearing it', e)
     clearSession()
     return null
   }
 }
 
 export function clearSession(): void {
-  localStorage.removeItem(USER_KEY)
-  localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  safeRemoveItem(USER_KEY)
+  stopProactiveRefresh()
 }
 
-export function logout(): void {
-  // Fire-and-forget logout request to invalidate refresh token
-  const refreshToken = getRefreshToken()
-  if (refreshToken) {
-    fetch('/api/auth/logout', {
+export async function logout(): Promise<void> {
+  stopProactiveRefresh()
+  try {
+    await apiFetch('/api/auth/logout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    }).catch(() => {/* ignore */})
+    })
+  } catch {
+    // Ignore errors
+  } finally {
+    clearSession()
+    window.location.href = '/login'
   }
-  clearSession()
-  window.location.href = '/login'
 }
 
-export function isAdmin(user: StoredUser | null): boolean {
+export function isAdmin(user: any): boolean {
   if (!user) return false
-  const role = typeof user.role === 'string' ? user.role : user.role?.roleName ?? ''
+  const role = typeof user?.role === 'string' 
+    ? user.role 
+    : user?.role?.roleName ?? ''
   return role.toLowerCase() === 'admin'
 }
 
-export function isEmployee(user: StoredUser | null): boolean {
+export function isEmployee(user: any): boolean {
   if (!user) return false
-  const role = typeof user.role === 'string' ? user.role : user.role?.roleName ?? ''
+  const role = typeof user?.role === 'string' 
+    ? user.role 
+    : user?.role?.roleName ?? ''
   return role.toLowerCase() === 'employee'
 }
 
 export function hasActiveSession(): boolean {
-  const token = getToken()
-  if (!token || isTokenExpired(token)) return false
   return getStoredUser() !== null
+}
+
+// Initialize proactive refresh on app load if user is already logged in
+if (typeof window !== 'undefined' && getStoredUser()) {
+  startProactiveRefresh()
 }

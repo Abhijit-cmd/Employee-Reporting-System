@@ -3,7 +3,6 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,34 +13,35 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
+  id         Int    @id @default(autoincrement())
 
-  employeeId   String?  @unique @map("employee_id")
+   employeeId String? @unique @map("employee_id")
+ 
+  name String
 
-  name         String
+  email String @unique
 
-  email        String   @unique
-
-  password     String
+  password String
 
   roleId Int @map("role_id")
 
   role Role @relation(fields: [roleId], references: [id])
 
-  phone        String?
+  phone String
 
-  status       String   @default("active")
+  status Status @default(active)
 
-  createdAt    DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  reports Report[]
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  reports       Report[]
   notifications Notification[]
-  targets Target[]
-  loginLogs LoginLog[]
+  targets       Target[]
+  loginLogs     LoginLog[]
   refreshTokens RefreshToken[]
-  
+
+  @@index([roleId])
   @@map("user")
-  
 }
 
 enum Status {
@@ -50,7 +50,6 @@ enum Status {
 }
 
 model Report {
-
   id Int @id @default(autoincrement())
 
   userId Int @map("user_id")
@@ -73,10 +72,10 @@ model Report {
 
   websiteVisitors Int @default(0)
 
-  challenges String @db.Text
-  salesBooking String @db.Text
+  challenges          String @db.Text
+  salesBooking        String @db.Text
   targetVsAchievement String @db.Text
-  accomplishments String @db.Text
+  accomplishments     String @db.Text
 
   reportStatusId Int @map("report_status_id")
 
@@ -84,41 +83,42 @@ model Report {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
-
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, mmyyyy])
+  @@index([userId])
+  @@index([reportStatusId])
+  @@index([mmyyyy])
   @@map("reports")
 }
-model Role {
 
+model Role {
   id Int @id @default(autoincrement())
 
   roleName String @unique @map("role_name")
 
   createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   users User[]
 
   @@map("roles")
-
-
 }
 
 model ReportStatus {
-
   id Int @id @default(autoincrement())
 
   statusName String @unique @map("status_name")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  reports Report[]
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  reports   Report[]
 
   @@map("report_status")
-
 }
 
 model Notification {
-
   id Int @id @default(autoincrement())
 
   userId Int @map("user_id")
@@ -133,19 +133,18 @@ model Notification {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("notifications")
-
 }
 
 model Target {
-
   id Int @id @default(autoincrement())
 
-  employeeId Int @map("employee_id")
+  userId Int @map("employee_id")
 
   targetTitle String @map("target_title")
 
@@ -161,16 +160,15 @@ model Target {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  updatedAt DateTime @updatedAt @map("updated_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  employee User @relation(fields: [employeeId], references: [id])
+  employee User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+ @@index([userId])
   @@map("targets")
-
 }
 
 model LoginLog {
-
   id Int @id @default(autoincrement())
 
   userId Int @map("user_id")
@@ -184,18 +182,22 @@ model LoginLog {
   deviceInfo String? @map("device_info")
 
   createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("login_logs")
-
 }
 
 model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  id     Int    @id @default(autoincrement())
+  token  String @unique
+  userId Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
+    @@index([userId])
+
 }

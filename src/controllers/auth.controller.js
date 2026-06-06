@@ -1,21 +1,25 @@
 const prisma = require("../prisma/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { parsePhoneNumberFromString } = require("libphonenumber-js");
+
+// Helper function for error responses
+const errorResponse = (res, message, status) => {
+  return res.status(status).json({ message });
+};
 
 // REGISTER USER
 exports.registerUser = async (req, res) => {
   try {
     const {
-      employeeId,
       name,
       email,
       password,
       phone,
-    
     } = req.body;
     // CHECK EMPTY FIELDS
     if (
-      !employeeId ||
+
       !name ||
       !email ||
       !password ||
@@ -27,15 +31,8 @@ exports.registerUser = async (req, res) => {
         message: "All fields are required",
       });
     }
-    //EMPLOYEE ID VALIDATION
-    const employeeIdRegex = /^[A-Za-z0-9_-]{3,20}$/;
-
-    if (!employeeIdRegex.test(employeeId)) {
-      return res.status(400).json({
-        message:
-          "Employee ID must be 3-20 characters and contain only letters, numbers, _ or -",
-      });
-    }
+   
+    
     // NAME VALIDATION
     const nameRegex = /^[A-Za-z\s'-]{3,50}$/;
 
@@ -57,14 +54,16 @@ exports.registerUser = async (req, res) => {
     }
 
     // PHONE VALIDATION
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneNumber = parsePhoneNumberFromString(phone, "IN");
 
-    if (!phoneRegex.test(phone)) {
-      return res.status(400).json({
-        message: "Invalid phone number",
-      });
+    if (!phoneNumber || !phoneNumber.isValid()) {
+      return errorResponse(res, "Invalid phone number", 400);
+
     }
-
+    // Indian mobile numbers must start with 6-9
+    if (!/^[6-9]\d{9}$/.test(phoneNumber.nationalNumber)) {
+      return errorResponse(res, "Invalid Indian mobile number", 400);
+    }
     // PASSWORD LENGTH CHECK
     if (password.length < 8 || password.length > 20) {
     return res.status(400).json({
@@ -103,23 +102,7 @@ exports.registerUser = async (req, res) => {
         message: "User already exists",
       });
     }
-    // CHECK EXISTING EMPLOYEE ID
-    const existingEmployeeId =
-      await prisma.user.findUnique({
-        where: {
-          employeeId,
-        },
-      });
-
-    if (existingEmployeeId) {
-
-      return res.status(400).json({
-        message:
-          "Employee ID already exists",
-      });
-
-    }
-   
+    
     // DELETE EXPIRED TOKENS
     await prisma.refreshToken.deleteMany({
       where: {
@@ -146,13 +129,13 @@ exports.registerUser = async (req, res) => {
       });
 
     }
-
     // CREATE USER
     const user = await prisma.user.create({
+      
       data: {
-        employeeId: employeeId,
+    
         name: name,
-        phone: phone,
+        phone: phoneNumber.number,
         email: email,
         password: hashedPassword,
         role: {
@@ -162,9 +145,17 @@ exports.registerUser = async (req, res) => {
        },
       },
     });
+    const employeeId = `EMP${String(user.id).padStart(3, "0")}`;
+
+    await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      employeeId,
+    },
+  });
     const safeUser = {
       id: user.id,
-      employeeId: user.employeeId,
+      employeeId,
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -185,76 +176,82 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
-    // 🔥 1. ENV ADMIN LOGIN (ADD THIS FIRST)
-    if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      const accessToken = jwt.sign(
-        {
-          id: "admin",
-          role: "ADMIN",
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "15m" }
-      );
-
-      return res.status(200).json({
-        message: "Admin login successful",
-        accessToken,
-        user: {
-          email,
-          role: "ADMIN",
-        },
-      });
-    }
-
-    // 🔥 2. NORMAL DB LOGIN (YOUR EXISTING LOGIC)
     const user = await prisma.user.findUnique({
       where: { email },
       include: { role: true },
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return errorResponse(res, "Invalid credentials", 401);
     }
+    if (!user.role) {
+  return errorResponse(res, "User role not found", 500);
+}
+    if (user.role.roleName.toLowerCase() !== role.toLowerCase()) {
+      return errorResponse(res, "Invalid role selected", 403);
 
-    if (
-      user.role.roleName.toLowerCase() !== role.toLowerCase()
-    ) {
-      return res.status(403).json({ message: "Invalid role selected" });
     }
 
     const accessToken = jwt.sign(
-      { id: user.id, role: user.role.roleName },
+      {
+        id: user.id,
+        role: user.role.roleName,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "15m" }
+      {
+        expiresIn: "15m",
+      }
     );
 
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
         userId: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ),
       },
+    });
+
+    // Set httpOnly cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    };
+
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return res.status(200).json({
       message: "Login successful",
-      accessToken,
-      refreshToken,
       user: {
         id: user.id,
         employeeId: user.employeeId,
@@ -266,14 +263,17 @@ exports.loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ message: "Login failed" });
+    console.error(error);
+    return res.status(500).json({
+      message: "Login failed",
+    });
   }
-  };
+};
 // REFRESH ACCESS TOKEN
 exports.refreshAccessToken = async ( req,  res) => {
 
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
 
     // CHECK TOKEN EXISTS
     if (!refreshToken) {
@@ -285,12 +285,14 @@ exports.refreshAccessToken = async ( req,  res) => {
     }
 
     // CHECK TOKEN IN DATABASE
+
     const storedToken =
       await prisma.refreshToken.findUnique({
         where: {
           token: refreshToken,
         },
       });
+
 
     // TOKEN NOT FOUND
     if (!storedToken) {
@@ -302,10 +304,20 @@ exports.refreshAccessToken = async ( req,  res) => {
     }
 
     // VERIFY JWT
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET
-    );
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    
+    // GET USER FROM DB TO GET ROLE
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      include: { role: true }
+    });
+    
+    if (!user || !user.role) {
+      return errorResponse(res, "User role not found", 404);
+    }
+    
+
     // DELETE OLD REFRESH TOKEN
     await prisma.refreshToken.delete({
       where: {
@@ -324,15 +336,20 @@ exports.refreshAccessToken = async ( req,  res) => {
       }
     );
     // CREATE NEW REFRESH TOKEN
-const newRefreshToken = jwt.sign(
-  {
-    id: decoded.id,
-  },
-  process.env.JWT_REFRESH_SECRET,
-  {
-    expiresIn: "7d",
-  }
-);
+
+    const crypto = require("crypto");
+
+    const newRefreshToken = jwt.sign(
+      {
+        id: decoded.id,
+        nonce: crypto.randomUUID(),
+      },
+      process.env.JWT_REFRESH_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
 
     // SAVE NEW REFRESH TOKEN
     await prisma.refreshToken.create({
@@ -345,9 +362,26 @@ const newRefreshToken = jwt.sign(
       },
     });
 
+    // Set new httpOnly cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    };
+
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie("refreshToken", newRefreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(200).json({
-      accessToken,
-      refreshToken: newRefreshToken,
+      message: "Token refreshed successfully",
     });
 
   } catch (error) {
@@ -363,11 +397,10 @@ const newRefreshToken = jwt.sign(
 };
 
 
-
 // LOGOUT USER
 exports.logoutUser = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
 
     if (refreshToken) {
       // deleteMany won't throw if token doesn't exist
@@ -375,6 +408,18 @@ exports.logoutUser = async (req, res) => {
         where: { token: refreshToken },
       });
     }
+
+    // Clear both cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      expires: new Date(0),
+    };
+
+    res.cookie("accessToken", "", cookieOptions);
+    res.cookie("refreshToken", "", cookieOptions);
 
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
@@ -393,6 +438,9 @@ exports.getProfile = async (req, res) => {
         role: true,
       },
     });
+    if (!user || !user.role) {
+    return errorResponse(res, "User role not found", 404);
+  }
 
     const safeUser = {
     id: user.id,
@@ -413,37 +461,47 @@ exports.getProfile = async (req, res) => {
 // GET ALL EMPLOYEES
 exports.getAllEmployees = async (req, res) => {
   try {
+    const search = req.query.search || ''
+
     const employees = await prisma.user.findMany({
       where: {
         role: {
           roleName: "Employee",
         },
+        AND: search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { employeeId: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {},
       },
       include: {
         role: true,
       },
-    });
-    const safeEmployees = employees.map(
-      (employee) => ({
-        id: employee.id,
-        employeeId: employee.employeeId,
-        name: employee.name,
-        email: employee.email,
-        phone: employee.phone,
-        status: employee.status,
-        role: employee.role.roleName,
-      })
-    );
+    })
 
-    res.status(200).json(safeEmployees);
+    const safeEmployees = employees.map((employee) => ({
+      id: employee.id,
+      employeeId: employee.employeeId,
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      status: employee.status,
 
-    
+      role: employee.role?.roleName || "Unknown",
+    }));
+
+
+    res.status(200).json(safeEmployees)
   } catch (error) {
     res.status(500).json({
-      message:  "Failed to fetch employees",
-    });
+      message: "Failed to fetch employees",
+    })
   }
-};
+}
 
 // DELETE EMPLOYEE
 exports.deleteEmployee = async (req, res) => {

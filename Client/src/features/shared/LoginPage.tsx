@@ -11,7 +11,9 @@ import {
 } from './icons/index'
 import { API_BASE_URL } from '../../config'
 import { showToast } from '../../lib/feedback'
+
 import '../../styles/login.css'
+import { saveUser } from '../../lib/auth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -19,17 +21,46 @@ export default function LoginPage() {
   const [role,       setRole]       = useState<'admin' | 'employee'>('admin')
   const [email,      setEmail]      = useState('')
   const [password,   setPassword]   = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw,     setShowPw]     = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
   const [isRegister, setIsRegister] = useState(false)
-  const [employeeId, setEmployeeId] = useState('')
   const [name,       setName]       = useState('')
   const [phone,      setPhone]      = useState('')
-
+  function resetAuthState() {
+    setError('')
+    setLoading(false)
+  }
+  function resetForm() {
+    setName('')
+    setPhone('')
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setError('')
+  }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    resetAuthState()
+
+    if (isRegister) {
+      if (password !== confirmPassword) {
+        setError('Passwords do not match')
+        return
+      }
+      if (name.trim().length === 0) {
+        setError('Please enter your full name')
+        return
+      }
+      const phoneRegex = /^\+?[1-9]\d{6,19}$/
+      if (!phoneRegex.test(phone.trim())) {
+        setError('Please enter a valid phone number (include country code if needed)')
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -38,37 +69,41 @@ export default function LoginPage() {
         : `${API_BASE_URL}/api/auth/login`
 
       const body = isRegister
-        ? { employeeId, name, phone, email, password }
-        : { email, password, role: role === 'admin' ? 'Admin' : 'Employee' }
+      ? { name, phone, email, password }
+      : { email, password, role: role === 'admin' ? 'Admin' : 'Employee' }
 
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        credentials: 'include', // Critical: allows cookies to be set
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        setError(data.message || (isRegister ? 'Registration failed' : 'Login failed'))
-        return
-      }
+
+      if (!response.ok || !data?.user) {
+  setError(data?.message || 'Invalid login response')
+  setLoading(false)
+  return
+}
 
       if (isRegister) {
         showToast('Registered successfully. Please log in.', 'success')
         setIsRegister(false)
+resetForm()
         return
       }
 
-      // Store tokens and user
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Store user info (tokens are in httpOnly cookies)
+      if (data?.user) {
+        saveUser(data.user)
+      }
 
       const userRole =
-        typeof data.user.role === 'string'
-          ? data.user.role
-          : data.user.role?.roleName ?? ''
+  typeof data.user?.role === 'string'
+    ? data.user.role
+    : data.user?.role?.roleName ?? ''
 
       if (userRole.toLowerCase() === 'admin') {
         navigate('/admin/dashboard')
@@ -115,7 +150,10 @@ export default function LoginPage() {
               <button
                 type="button"
                 className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
-                onClick={() => { setRole('admin'); setError('') }}
+                onClick={() => {
+                  setRole('admin')
+                  resetAuthState()
+                }}
               >
                 <div className="login-role-icon"><IcoShield /></div>
                 <div className="login-role-name">Admin</div>
@@ -124,7 +162,10 @@ export default function LoginPage() {
               <button
                 type="button"
                 className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
-                onClick={() => { setRole('employee'); setError('') }}
+                onClick={() => {
+                  setRole('employee')
+                  resetAuthState()
+                }}
               >
                 <div className="login-role-icon"><IcoUser /></div>
                 <div className="login-role-name">Employee</div>
@@ -135,16 +176,14 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} noValidate>
               {isRegister && (
                 <>
-                  <div className="login-field">
-                    <label className="login-label">Employee ID</label>
-                    <div className="login-input-wrap">
-                      <input className="login-input" type="text" placeholder="Enter employee ID" value={employeeId} onChange={e => setEmployeeId(e.target.value)} />
-                    </div>
-                  </div>
+                  
                   <div className="login-field">
                     <label className="login-label">Full Name</label>
                     <div className="login-input-wrap">
-                      <input className="login-input" type="text" placeholder="Enter full name" value={name} onChange={e => setName(e.target.value)} />
+                      <input className="login-input" type="text" placeholder="Enter full name" value={name} onChange={e => {
+  setName(e.target.value)
+  setError('')
+}} />
                     </div>
                   </div>
                   <div className="login-field">
@@ -165,7 +204,10 @@ export default function LoginPage() {
                     type="email"
                     placeholder="Enter your email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => {
+                      setEmail(e.target.value)
+                      setError('')
+                    }}
                     required
                     autoComplete="email"
                   />
@@ -181,7 +223,10 @@ export default function LoginPage() {
                     type={showPw ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => {
+                      setPassword(e.target.value)
+                      setError('')
+                    }}
                     required
                     autoComplete="current-password"
                     style={{ paddingRight: 40 }}
@@ -197,6 +242,43 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {isRegister && (
+                <div className="login-field">
+                  <label className="login-label">Confirm Password</label>
+                  <div className="login-input-wrap">
+                    <span className="login-input-icon"><IcoLock /></span>
+                    <input
+                      className="login-input"
+                      type={showConfirmPw ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={e => {
+                        setConfirmPassword(e.target.value)
+                        setError('')
+                      }}
+                      required
+                      autoComplete="new-password"
+                      style={{ paddingRight: 40 }}
+                    />
+                    <button
+                      type="button"
+                      className="login-pw-toggle"
+                      onClick={() => setShowConfirmPw(s => !s)}
+                      aria-label={showConfirmPw ? 'Hide password' : 'Show password'}
+                    >
+                       <IcoEye show={showConfirmPw} />
+    </button>
+  </div>
+
+  {/* ✅ FIX: inline validation message goes HERE */}
+  {confirmPassword.length > 0 && password !== confirmPassword && (
+    <div className="login-error">
+      Passwords do not match
+    </div>
+  )}
+</div>
+              )}
+
               {error && <div className="login-error">{error}</div>}
 
               <button className="login-submit" type="submit" disabled={loading}>
@@ -211,7 +293,10 @@ export default function LoginPage() {
               {isRegister ? (
                 <>
                   Already have an account?
-                  <button type="button" className="login-register-link" onClick={() => setIsRegister(false)}>
+                  <button type="button" className="login-register-link" onClick={() => {
+ setIsRegister(true)
+ resetAuthState()
+}}>
                     Login
                   </button>
                 </>
@@ -219,7 +304,10 @@ export default function LoginPage() {
                 role === 'employee' && (
                   <>
                     Don&apos;t have an account?
-                    <button type="button" className="login-register-link" onClick={() => setIsRegister(true)}>
+                    <button type="button" className="login-register-link" onClick={() => {
+  setIsRegister(true)
+  resetAuthState()
+}}>
                       Register
                     </button>
                   </>

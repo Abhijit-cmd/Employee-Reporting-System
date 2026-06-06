@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  IconSearch,
+
   IconBell,
   IconChevronDown,
 } from '../../shared/icons'
@@ -10,8 +10,6 @@ import { initials } from '../../../lib/utils'
 interface Props {
   page: string
   onNavigate: (page: string) => void
-  searchQuery?: string
-  onSearchChange?: (q: string) => void
 }
 
 const MONTHS_SHORT = [
@@ -35,17 +33,27 @@ function NavCalendar() {
   const today = new Date()
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Date>(today)
-  const [viewYear] = useState(today.getFullYear())
-  const [viewMonth] = useState(today.getMonth())
+  const [viewYear, setViewYear] = useState(today.getFullYear())
+const [viewMonth, setViewMonth] = useState(today.getMonth())
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function h(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [])
+    useEffect(() => {
+      function handleClickOutside(e: PointerEvent) {
+        if (!ref.current) return
+    
+        const target = e.target as Node
+    
+        if (!ref.current.contains(target)) {
+          setOpen(false)
+        }
+      }
+    
+      document.addEventListener('pointerdown', handleClickOutside)
+    
+      return () => {
+        document.removeEventListener('pointerdown', handleClickOutside)
+      }
+    }, [])
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
@@ -54,7 +62,7 @@ function NavCalendar() {
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ]
 
-  const label = `${MONTHS_SHORT[selected.getMonth()]} ${selected.getFullYear()}`
+  const label = `${MONTHS_SHORT[viewMonth]} ${viewYear}`
 
   return (
     <div className="navbar-date-picker" ref={ref}>
@@ -65,11 +73,43 @@ function NavCalendar() {
       </button>
       {open && (
         <div className="rp-cal-popup navbar-cal-popup" onClick={(e) => e.stopPropagation()}>
-          <div className="rp-cal-header">
-            <span className="rp-cal-month">
-              {MONTHS_SHORT[viewMonth]} {viewYear}
-            </span>
-          </div>
+          <div className="rp-cal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+<button
+  type="button"
+  onClick={() => {
+    setViewMonth(prev => {
+      if (prev === 0) {
+        setViewYear(y => y - 1)
+        return 11
+      }
+      return prev - 1
+    })
+  }}
+>
+  ‹
+</button>
+
+<span className="rp-cal-month">
+  {MONTHS_SHORT[viewMonth]} {viewYear}
+</span>
+
+<button
+  type="button"
+  onClick={() => {
+    setViewMonth(prev => {
+      if (prev === 11) {
+        setViewYear(y => y + 1)
+        return 0
+      }
+      return prev + 1
+    })
+  }}
+>
+  ›
+</button>
+
+</div>
           <div className="rp-cal-grid">
             {DAYS_SHORT.map((d) => (
               <div key={d} className="rp-cal-day-label">
@@ -84,7 +124,6 @@ function NavCalendar() {
                   className="rp-cal-day"
                   onClick={() => {
                     setSelected(new Date(viewYear, viewMonth, day))
-                    setOpen(false)
                   }}
                 >
                   {day}
@@ -114,8 +153,7 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
 export default function AdminNavbar({
   page,
   onNavigate,
-  searchQuery = '',
-  onSearchChange,
+  
 }: Props) {
   const user = getStoredUser()
   const meta = PAGE_TITLES[page] ?? PAGE_TITLES.dashboard
@@ -131,15 +169,7 @@ export default function AdminNavbar({
             : meta.sub}
         </p>
       </div>
-      <div className="navbar-search">
-        <IconSearch />
-        <input
-          type="text"
-          placeholder="Search employee..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange?.(e.target.value)}
-        />
-      </div>
+    
       <NavCalendar />
       <div className="navbar-actions">
         <button
