@@ -226,32 +226,28 @@ resetForm()
               {isRegister ? 'Fill in your details to register as an employee' : 'Choose your role and sign in to continue'}
             </div>
 
-            {!isRegister && <div className="login-roles">
-              <button
-                type="button"
-                className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
-                onClick={() => {
-                  setRole('admin')
-                  resetAuthState()
-                }}
-              >
-                <div className="login-role-icon"><IcoShield /></div>
-                <div className="login-role-name">Admin</div>
-                <div className="login-role-sub">Super Admin Access</div>
-              </button>
-              <button
-                type="button"
-                className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
-                onClick={() => {
-                  setRole('employee')
-                  resetAuthState()
-                }}
-              >
-                <div className="login-role-icon"><IcoUser /></div>
-                <div className="login-role-name">Employee</div>
-                <div className="login-role-sub">Employee Access</div>
-              </button>
-            </div>}
+            {!isRegister && (
+              <div className="login-roles">
+                <button
+                  type="button"
+                  className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
+                  onClick={() => { setRole('admin'); resetAuthState() }}
+                >
+                  <div className="login-role-icon"><IcoShield /></div>
+                  <div className="login-role-name">Admin</div>
+                  <div className="login-role-sub">Super Admin Access</div>
+                </button>
+                <button
+                  type="button"
+                  className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
+                  onClick={() => { setRole('employee'); resetAuthState() }}
+                >
+                  <div className="login-role-icon"><IcoUser /></div>
+                  <div className="login-role-name">Employee</div>
+                  <div className="login-role-sub">Employee Access</div>
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} noValidate>
               {isRegister && (
