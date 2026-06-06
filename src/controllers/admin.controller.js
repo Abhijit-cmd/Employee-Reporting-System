@@ -93,6 +93,7 @@ exports.getReportById = async (req, res) => {
     }
     return successResponse(res, report);
   } catch (error) {
+    console.error(error);
     return errorResponse(res, "Failed to fetch report");
   }
 };
