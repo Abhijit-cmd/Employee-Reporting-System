@@ -9,6 +9,14 @@ import {
   IcoUser,
 } from './icons/index'
 
+const BENEFITS = [
+  { num: '01', title: 'Effortless Monthly Reporting', desc: 'Submit structured reports in minutes with a guided form.' },
+  { num: '02', title: 'Real-Time Performance Tracking', desc: 'Monitor your targets and achievements as they happen.' },
+  { num: '03', title: 'Centralized Records', desc: 'Every report stored securely — accessible anytime, anywhere.' },
+  { num: '04', title: 'Instant Admin Visibility', desc: 'Management gets instant insight into team progress and activity.' },
+  { num: '05', title: 'Data-Driven Decisions', desc: 'Analytics and trends help leadership make smarter choices.' },
+]
+
 const GREETINGS = [
   'Welcome Back!',
   'वापस आपका स्वागत है!',
@@ -36,6 +44,8 @@ export default function LoginPage() {
 
   const [greetingIdx, setGreetingIdx] = useState(0)
   const [greetingVisible, setGreetingVisible] = useState(true)
+  const [benefitIdx, setBenefitIdx] = useState(0)
+  const [benefitVisible, setBenefitVisible] = useState(true)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -45,6 +55,17 @@ export default function LoginPage() {
         setGreetingVisible(true)
       }, 400)
     }, 2800)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBenefitVisible(false)
+      setTimeout(() => {
+        setBenefitIdx((i) => (i + 1) % BENEFITS.length)
+        setBenefitVisible(true)
+      }, 400)
+    }, 3500)
     return () => clearInterval(interval)
   }, [])
 
@@ -168,6 +189,31 @@ resetForm()
           </div>
           <div className="login-welcome-sub">
             Sign in to your account and continue managing reports efficiently.
+          </div>
+
+          <div className="login-benefits">
+            <div className="login-benefits-label">WHY THIS SYSTEM?</div>
+            <div
+              className="login-benefits-card"
+              style={{ opacity: benefitVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}
+            >
+              <div className="login-benefits-num">{BENEFITS[benefitIdx].num}</div>
+              <div className="login-benefits-text">
+                <div className="login-benefits-title">{BENEFITS[benefitIdx].title}</div>
+                <div className="login-benefits-desc">{BENEFITS[benefitIdx].desc}</div>
+              </div>
+            </div>
+            <div className="login-benefits-dots">
+              {BENEFITS.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`login-benefits-dot${i === benefitIdx ? ' active' : ''}`}
+                  onClick={() => { setBenefitIdx(i); setBenefitVisible(true) }}
+                  aria-label={`Benefit ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
