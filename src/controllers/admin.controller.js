@@ -134,7 +134,10 @@ exports.downloadReport = async (req, res) => {
     if (isNaN(reportId)) return errorResponse(res, "Invalid report ID", 400);
     const report = await prisma.report.findUnique({
       where: { id: reportId },
-      include: { user: true, reportStatus: true },
+      include: {
+        user: { select: { id: true, name: true, employeeId: true } },
+        reportStatus: true,
+      },
     });
 
     if (!report) {
@@ -191,7 +194,7 @@ exports.downloadReport = async (req, res) => {
     doc.fontSize(12).text(report.accomplishments || "");
     doc.end();
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return errorResponse(res, "Failed to download report");
   }
 };
@@ -199,7 +202,10 @@ exports.downloadReport = async (req, res) => {
 exports.downloadAllReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
-      include: { user: true, reportStatus: true },
+      include: {
+        user: { select: { id: true, name: true, employeeId: true } },
+        reportStatus: true,
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -254,7 +260,7 @@ exports.downloadAllReports = async (req, res) => {
 
     doc.end();
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return errorResponse(res, "Failed to download reports");
   }
 };

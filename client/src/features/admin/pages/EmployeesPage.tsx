@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
-import { initials, debounce } from '../../../lib/utils'
+import { initials } from '../../../lib/utils'
 import type { ApiEmployee } from '../../../types'
 
 interface Props {
@@ -117,8 +117,8 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
       return
     }
   
-    if (password.length < 6) {
-      showToast('Password must be at least 6 characters', 'error')
+    if (password.length < 8) {
+      showToast('Password must be at least 8 characters', 'error')
       return
     }
   
@@ -228,13 +228,6 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
       setLoading(false)
     }
   }, [search])
-
-  const debouncedFetch = useCallback(
-    debounce(() => {
-      fetchEmployees()
-    }, 300),
-    [fetchEmployees]
-  )
 
   useEffect(() => {
     const abortController = new AbortController()
