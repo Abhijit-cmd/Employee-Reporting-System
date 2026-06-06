@@ -96,7 +96,8 @@ exports.registerUser = async (req, res) => {
           role: { connect: { id: employeeRole.id } },
         },
       });
-      const employeeId = `EMP${String(created.id).padStart(6, "0")}`;
+      const empCount = await tx.user.count({ where: { role: { roleName: "Employee" } } });
+      const employeeId = `CMAT-${String(empCount).padStart(3, "0")}`;
       return tx.user.update({
         where: { id: created.id },
         data: { employeeId },
@@ -393,6 +394,59 @@ exports.getAllEmployees = async (req, res) => {
 };
 
 // DELETE EMPLOYEE
+exports.updateEmployee = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid employee ID" });
+
+    const { name, email, phone, password } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
+    if (!user) return res.status(404).json({ message: "Employee not found" });
+    if (user.role?.roleName !== "Employee") return res.status(403).json({ message: "Can only edit employee accounts" });
+
+    const updateData = {};
+
+    if (name !== undefined) {
+      const trimmed = name.trim();
+      if (!trimmed) return res.status(400).json({ message: "Name cannot be empty" });
+      updateData.name = trimmed;
+    }
+
+    if (email !== undefined) {
+      const trimmed = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) return res.status(400).json({ message: "Invalid email address" });
+      const existing = await prisma.user.findFirst({ where: { email: trimmed, NOT: { id } } });
+      if (existing) return res.status(409).json({ message: "Email already in use" });
+      updateData.email = trimmed;
+    }
+
+    if (phone !== undefined) {
+      updateData.phone = phone.trim() || null;
+    }
+
+    if (password !== undefined && password.trim()) {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 characters with uppercase, lowercase and a number" });
+      }
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: { id: true, name: true, email: true, phone: true, employeeId: true },
+    });
+
+    res.status(200).json({ message: "Employee updated successfully", user: updated });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to update employee" });
+  }
+};
+
 exports.deleteEmployee = async (req, res) => {
   try {
     const id = Number(req.params.id);

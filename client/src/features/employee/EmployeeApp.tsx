@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import EmployeeSidebar from './components/EmployeeSidebar'
 import EmployeeNavbar from './components/EmployeeNavbar'
 import EmployeeDashboard from '../../features/employee/EmployeeDashboard'
@@ -8,6 +8,7 @@ import MonthlyReportsPage from './pages/MonthlyReportsPage'
 import AchievementsPage from './pages/AchievementsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import AnnouncementsPage from './pages/AnnouncementsPage'
+import MyTargetsPage from './pages/MyTargetsPage'
 
 function EmployeePageContent({
   page,
@@ -29,20 +30,29 @@ function EmployeePageContent({
       return <NotificationsPage />
     case 'announcements':
       return <AnnouncementsPage />
+    case 'my-targets':
+      return <MyTargetsPage />
     default:
       return <EmployeeDashboard onNavigate={onNavigate} />
   }
 }
 
 export default function EmployeeApp() {
-  const [empPage, setEmpPage] = useState('home')
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const empPage = location.pathname.replace(/^\/employee\/?/, '').split('/')[0] || 'home'
+
+  function handleNavigate(page: string) {
+    navigate(`/employee/${page}`, { replace: true })
+  }
 
   return (
     <div className="layout">
-      <EmployeeSidebar active={empPage} onNav={setEmpPage} />
+      <EmployeeSidebar active={empPage} onNav={handleNavigate} />
       <div className="main-wrapper">
-        <EmployeeNavbar page={empPage} onNavigate={setEmpPage} />
-        <EmployeePageContent page={empPage} onNavigate={setEmpPage} />
+        <EmployeeNavbar page={empPage} onNavigate={handleNavigate} />
+        <EmployeePageContent page={empPage} onNavigate={handleNavigate} />
       </div>
     </div>
   )

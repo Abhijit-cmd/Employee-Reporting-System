@@ -2,23 +2,23 @@ import {
   IconDashboard,
   IconUsers,
   IconFileText,
-  IconBell,
+  IconMegaphone,
   IconBarChart,
-  IconDownload,
+  IconClock,
   IconSettings,
   IconHelpCircle,
 } from '../../shared/icons'
 import { APP_VERSION } from '../../../config'
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', section: 'MANAGEMENT' },
-  { id: 'employees', label: 'Employees', section: 'MANAGEMENT' },
-  { id: 'reports', label: 'Reports', section: 'MANAGEMENT' },
-  { id: 'targets', label: 'Targets', section: 'MANAGEMENT' },
-  { id: 'notifications', label: 'Notifications', section: 'MANAGEMENT' },
-  { id: 'analytics', label: 'Analytics', section: 'ANALYTICS' },
-  { id: 'export-reports', label: 'Export Reports', section: 'SYSTEM' },
-  { id: 'settings', label: 'Profile', section: 'SYSTEM' },
+  { id: 'dashboard',       label: 'Dashboard',       section: 'MANAGEMENT' },
+  { id: 'employees',       label: 'Employees',        section: 'MANAGEMENT' },
+  { id: 'reports',         label: 'Reports',          section: 'MANAGEMENT' },
+  { id: 'pending-reports', label: 'Pending Reports',  section: 'MANAGEMENT' },
+  { id: 'targets',         label: 'Targets',          section: 'MANAGEMENT' },
+  { id: 'announcements',   label: 'Announcements',    section: 'MANAGEMENT' },
+  { id: 'analytics',       label: 'Analytics',        section: 'ANALYTICS' },
+  { id: 'settings',        label: 'Profile',          section: 'SYSTEM' },
 ]
 
 function NavIcon({ id }: { id: string }) {
@@ -29,12 +29,12 @@ function NavIcon({ id }: { id: string }) {
       return <IconUsers />
     case 'reports':
       return <IconFileText />
-    case 'notifications':
-      return <IconBell />
+    case 'pending-reports':
+      return <IconClock />
+    case 'announcements':
+      return <IconMegaphone />
     case 'analytics':
       return <IconBarChart />
-    case 'export-reports':
-      return <IconDownload />
     case 'settings':
       return <IconSettings />
     default:

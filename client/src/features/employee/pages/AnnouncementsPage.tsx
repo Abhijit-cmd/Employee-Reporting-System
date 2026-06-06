@@ -40,9 +40,11 @@ export default function AnnouncementsPage() {
 
         {!loading && !error && items.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
-            <IconMegaphone />
-            <p style={{ marginTop: 12, fontWeight: 600 }}>No announcements yet.</p>
-            <p style={{ fontSize: 13 }}>Check back later for company updates.</p>
+            <div style={{ width: 48, height: 48, margin: '0 auto 12px', opacity: 0.3, fontSize: 48 }}>
+              <IconMegaphone />
+            </div>
+            <p style={{ margin: 0, fontWeight: 600 }}>No announcements yet.</p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>Check back later for company updates.</p>
           </div>
         )}
 
@@ -60,7 +62,7 @@ export default function AnnouncementsPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ background: '#fdecea', color: '#c62828', borderRadius: 8, padding: 6, display: 'flex' }}>
+                    <div style={{ background: '#fdecea', color: '#c62828', borderRadius: 8, padding: 6, display: 'flex', width: 32, height: 32, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <IconMegaphone />
                     </div>
                     <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{a.title}</span>

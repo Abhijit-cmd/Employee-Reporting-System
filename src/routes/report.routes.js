@@ -7,6 +7,8 @@ const adminMiddleware = require("../middleware/admin.middleware");
 
 router.post("/create", authMiddleware, reportController.createReport);
 router.get("/my-reports", authMiddleware, reportController.getMyReports);
+router.get("/my-targets", authMiddleware, reportController.getMyTargets);
+router.patch("/my-targets/:id/achieve", authMiddleware, reportController.updateTargetAchieved);
 
 // Admin-only routes
 router.get("/", authMiddleware, adminMiddleware, reportController.getReports);

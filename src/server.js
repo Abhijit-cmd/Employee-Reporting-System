@@ -73,8 +73,8 @@ app.use(express.json({ limit: "10kb" }));
 
 // Rate limiter for auth routes only
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 20 : 200,
   message: { message: "Too many attempts. Try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -105,9 +105,30 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const prisma = require("./prisma/prismaClient");
 
-const server = app.listen(PORT, () => {
+async function ensureReferenceData() {
+  try {
+    await prisma.reportStatus.createMany({
+      data: [
+        { statusName: "Pending" },
+        { statusName: "Submitted" },
+        { statusName: "Reviewed" },
+      ],
+      skipDuplicates: true,
+    });
+    await prisma.role.createMany({
+      data: [{ roleName: "Admin" }, { roleName: "Employee" }],
+      skipDuplicates: true,
+    });
+  } catch (e) {
+    console.error("Warning: could not seed reference data:", e.message);
+  }
+}
+
+const server = app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  await ensureReferenceData();
 });
 
 server.requestTimeout = 30000;

@@ -37,10 +37,18 @@ import { API_BASE_URL } from '../../config'
 import { showToast } from '../../lib/feedback'
 
 import '../../styles/login.css'
-import { saveUser } from '../../lib/auth'
+import { saveUser, getStoredUser, hasActiveSession, isAdmin } from '../../lib/auth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+
+  // If already logged in, skip login page entirely
+  useEffect(() => {
+    const user = getStoredUser()
+    if (hasActiveSession() && user) {
+      navigate(isAdmin(user) ? '/admin/dashboard' : '/employee/dashboard', { replace: true })
+    }
+  }, [])
 
   const [greetingIdx, setGreetingIdx] = useState(0)
   const [greetingVisible, setGreetingVisible] = useState(true)
@@ -159,9 +167,9 @@ resetForm()
     : data.user?.role?.roleName ?? ''
 
       if (userRole.toLowerCase() === 'admin') {
-        navigate('/admin/dashboard')
+        navigate('/admin/dashboard', { replace: true })
       } else {
-        navigate('/employee/dashboard')
+        navigate('/employee/dashboard', { replace: true })
       }
     } catch (err) {
       setError(

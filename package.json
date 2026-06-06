@@ -30,7 +30,8 @@
     "libphonenumber-js": "^1.13.5",
     "mysql2": "^3.22.3",
     "pdfkit": "^0.18.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "concurrently": "^10.0.1",

@@ -1,5 +1,6 @@
 const prisma = require("../prisma/prismaClient");
 const PDFDocument = require("pdfkit");
+const XLSX = require("xlsx");
 
 // Helper function for standard API responses
 const successResponse = (res, data, status = 200) => {
@@ -8,6 +9,76 @@ const successResponse = (res, data, status = 200) => {
 
 const errorResponse = (res, message, status = 500) => {
   return res.status(status).json({ success: false, message });
+};
+
+exports.getAnalytics = async (req, res) => {
+  try {
+    const [reports, totalEmployees, targets] = await Promise.all([
+      prisma.report.findMany({
+        include: {
+          user: { select: { name: true, employeeId: true } },
+          reportStatus: true,
+        },
+        orderBy: { mmyyyy: "asc" },
+      }),
+      prisma.user.count({ where: { role: { roleName: "Employee" } } }),
+      prisma.target.findMany({
+        include: { employee: { select: { name: true } } },
+      }),
+    ]);
+
+    // Monthly trend grouped by mmyyyy
+    const monthlyMap = new Map();
+    for (const r of reports) {
+      if (!monthlyMap.has(r.mmyyyy)) {
+        monthlyMap.set(r.mmyyyy, { month: r.mmyyyy, total: 0, reviewed: 0, pending: 0, submitted: 0 });
+      }
+      const entry = monthlyMap.get(r.mmyyyy);
+      entry.total++;
+      const s = r.reportStatus?.statusName ?? "";
+      if (s === "Reviewed") entry.reviewed++;
+      else if (s === "Pending") entry.pending++;
+      else if (s === "Submitted") entry.submitted++;
+    }
+    const monthlyTrend = Array.from(monthlyMap.values());
+
+    // Reports by employee
+    const empMap = new Map();
+    for (const r of reports) {
+      const name = r.user?.name ?? "Unknown";
+      empMap.set(name, (empMap.get(name) ?? 0) + 1);
+    }
+    const byEmployee = Array.from(empMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Status distribution
+    const statusMap = new Map();
+    for (const r of reports) {
+      const s = r.reportStatus?.statusName ?? "Unknown";
+      statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
+    }
+    const byStatus = Array.from(statusMap.entries()).map(([name, value]) => ({ name, value }));
+
+    // Target achievement
+    const targetData = targets.map((t) => ({
+      name: t.employee?.name ?? "Unknown",
+      target: t.targetValue,
+      achieved: t.achievedValue,
+    }));
+
+    return successResponse(res, {
+      totalReports: reports.length,
+      totalEmployees,
+      monthlyTrend,
+      byEmployee,
+      byStatus,
+      targetData,
+    });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch analytics");
+  }
 };
 
 exports.getDashboardSummary = async (req, res) => {
@@ -144,6 +215,38 @@ exports.downloadReport = async (req, res) => {
     if (!report) {
       return errorResponse(res, "Report not found", 404);
     }
+
+    const format = (req.query.format || "pdf").toLowerCase();
+    if (format === "xlsx") {
+      const rows = [
+        ["Field", "Value"],
+        ["Employee Name", report.user?.name ?? ""],
+        ["Employee ID", report.user?.employeeId ?? ""],
+        ["Month", report.mmyyyy],
+        ["Business Owner", report.businessOwner],
+        ["Prepared By", report.preparedBy],
+        ["Reviewed By", report.reviewedBy],
+        ["Status", report.reportStatus?.statusName ?? ""],
+        ["Customers Registered", report.customersRegistered],
+        ["Suppliers Registered", report.suppliersRegistered],
+        ["New Brand Products", report.newBrandProducts],
+        ["Success Stories", report.successStories],
+        ["Website Visitors", report.websiteVisitors],
+        ["Challenges", report.challenges ?? ""],
+        ["Sales Booking", report.salesBooking ?? ""],
+        ["Target Vs Achievement", report.targetVsAchievement ?? ""],
+        ["Accomplishments", report.accomplishments ?? ""],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!cols"] = [{ wch: 28 }, { wch: 60 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Report");
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="report-${report.id}.xlsx"`);
+      return res.send(buf);
+    }
+
     const doc = new PDFDocument();
     const fileName = `report-${report.id}.pdf`;
 
@@ -211,6 +314,43 @@ exports.downloadAllReports = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const format = (req.query.format || "pdf").toLowerCase();
+    if (format === "xlsx") {
+      const headers = [
+        "Employee Name", "Employee ID", "Month", "Business Owner",
+        "Prepared By", "Reviewed By", "Status",
+        "Customers Registered", "Suppliers Registered", "New Brand Products",
+        "Success Stories", "Website Visitors",
+        "Challenges", "Sales Booking", "Target Vs Achievement", "Accomplishments",
+      ];
+      const rows = reports.map(r => [
+        r.user?.name ?? "",
+        r.user?.employeeId ?? "",
+        r.mmyyyy,
+        r.businessOwner,
+        r.preparedBy,
+        r.reviewedBy,
+        r.reportStatus?.statusName ?? "",
+        r.customersRegistered,
+        r.suppliersRegistered,
+        r.newBrandProducts,
+        r.successStories,
+        r.websiteVisitors,
+        r.challenges ?? "",
+        r.salesBooking ?? "",
+        r.targetVsAchievement ?? "",
+        r.accomplishments ?? "",
+      ]);
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      ws["!cols"] = headers.map((_, i) => ({ wch: i >= 12 ? 40 : 20 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "All Reports");
+      const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", 'attachment; filename="all-reports.xlsx"');
+      return res.send(buf);
+    }
+
     const doc = new PDFDocument({ margin: 40 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="all-reports.pdf"');
@@ -265,5 +405,84 @@ exports.downloadAllReports = async (req, res) => {
   } catch (error) {
     console.error(error);
     return errorResponse(res, "Failed to download reports");
+  }
+};
+
+exports.getEmployeeReports = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) return errorResponse(res, "Invalid employee ID", 400);
+
+    const [employee, reports] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, employeeId: true, email: true },
+      }),
+      prisma.report.findMany({
+        where: { userId },
+        include: { reportStatus: true },
+        orderBy: { mmyyyy: "desc" },
+      }),
+    ]);
+
+    if (!employee) return errorResponse(res, "Employee not found", 404);
+
+    return successResponse(res, { employee, reports });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch employee reports");
+  }
+};
+
+exports.sendReminder = async (req, res) => {
+  try {
+    const { userId, month } = req.body;
+    if (!userId || !month) return errorResponse(res, "userId and month are required", 400);
+
+    const user = await prisma.user.findUnique({ where: { id: Number(userId) }, select: { id: true, name: true } });
+    if (!user) return errorResponse(res, "Employee not found", 404);
+
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        title: "Report Submission Reminder",
+        message: `Please submit your monthly report for ${month}. Your report is overdue — submit it as soon as possible.`,
+        notificationType: "reminder",
+      },
+    });
+
+    return successResponse(res, { message: "Reminder sent to " + user.name });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to send reminder");
+  }
+};
+
+exports.getNotSubmitted = async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month || !/^(0[1-9]|1[0-2])\d{4}$/.test(month)) {
+      return errorResponse(res, "Invalid month. Use MMYYYY format.", 400);
+    }
+
+    const [allEmployees, reports] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: { roleName: "Employee" } },
+        select: { id: true, name: true, employeeId: true, email: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.report.findMany({
+        where: { mmyyyy: month },
+        select: { userId: true },
+      }),
+    ]);
+
+    const submittedIds = new Set(reports.map(r => r.userId));
+    const notSubmitted = allEmployees.filter(e => !submittedIds.has(e.id));
+
+    return successResponse(res, { month, notSubmitted, total: notSubmitted.length });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch not-submitted employees");
   }
 };

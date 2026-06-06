@@ -147,6 +147,9 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   reports: { title: 'Reports', sub: 'Dashboard / Reports' },
   'pending-reports': { title: 'Pending Reports', sub: 'Dashboard / Pending Reports' },
   settings: { title: 'Settings', sub: 'Dashboard / Settings' },
+  analytics: { title: 'Analytics', sub: 'Reports · Employees · Targets overview' },
+  announcements: { title: 'Announcements', sub: 'Manage company-wide announcements' },
+  targets: { title: 'Targets', sub: 'Set and track employee targets' },
 }
 
 export default function AdminNavbar({

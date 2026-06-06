@@ -79,6 +79,22 @@ exports.createTarget = async (req, res) => {
       },
     });
 
+    const monthNames = [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December',
+    ];
+    const monthIndex = parseInt(String(targetMonth), 10);
+    const monthName = monthNames[monthIndex - 1] ?? targetMonth;
+
+    await prisma.notification.create({
+      data: {
+        userId: employee.id,
+        title: 'New Target Assigned',
+        message: `Admin has assigned you a new target: "${targetTitle}" for ${monthName} ${Math.trunc(year)}.`,
+        notificationType: 'target',
+      },
+    }).catch(() => {});
+
     res.status(201).json({ message: "Target created successfully", target: created });
   } catch (error) {
     res.status(500).json({ message: "Failed to create target" });

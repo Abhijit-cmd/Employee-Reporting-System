@@ -239,3 +239,42 @@ exports.getMyReports = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch reports" });
   }
 };
+
+// ── GET MY TARGETS ────────────────────────────────────────────────────────────────────
+exports.getMyTargets = async (req, res) => {
+  try {
+    const targets = await prisma.target.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "desc" },
+    });
+    res.status(200).json(targets);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch targets" });
+  }
+};
+
+// ── UPDATE TARGET ACHIEVED VALUE ──────────────────────────────────────────────────────
+exports.updateTargetAchieved = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid target ID" });
+
+    const target = await prisma.target.findUnique({ where: { id } });
+    if (!target) return res.status(404).json({ message: "Target not found" });
+    if (target.userId !== req.user.id) return res.status(403).json({ message: "Not your target" });
+
+    const achieved = Number(req.body.achievedValue);
+    if (!Number.isFinite(achieved) || achieved < 0) {
+      return res.status(400).json({ message: "Achieved value must be a non-negative number" });
+    }
+
+    const updated = await prisma.target.update({
+      where: { id },
+      data: { achievedValue: achieved },
+    });
+
+    res.status(200).json({ message: "Target updated", target: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update target" });
+  }
+};

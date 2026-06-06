@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import { IconBell, IconChevronDown, IconPlus } from '../../shared/icons'
 import { getStoredUser } from '../../../lib/auth'
+import { apiFetch } from '../../../lib/api'
 
 interface Props {
   page: string
@@ -11,6 +13,7 @@ const pageTitles: Record<string, { title: string; sub: string }> = {
   'create-report': { title: 'Create New Report', sub: 'Home / Create New Report' },
   'monthly-reports': { title: 'Monthly Reports', sub: 'View all your monthly reports' },
   achievements: { title: 'Achievements', sub: 'Your achievements and milestones' },
+  'my-targets': { title: 'My Targets', sub: 'View and update your assigned targets' },
   notifications: { title: 'Notifications', sub: 'Your recent notifications' },
   announcements: { title: 'Announcements', sub: 'Latest announcements' },
   settings: {
@@ -22,6 +25,19 @@ const pageTitles: Record<string, { title: string; sub: string }> = {
 export default function EmployeeNavbar({ page, onNavigate }: Props) {
   const user = getStoredUser()
   const meta = pageTitles[page] ?? pageTitles.home
+  const [unreadCount, setUnreadCount] = useState(0)
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
+
+  useEffect(() => {
+    apiFetch<{ isRead: boolean }[]>('/api/notifications')
+      .then((data) => {
+        if (!mountedRef.current) return
+        const count = Array.isArray(data) ? data.filter((n) => !n.isRead).length : 0
+        setUnreadCount(count)
+      })
+      .catch(() => {})
+  }, [page])
 
   return (
     <header className="navbar">
@@ -47,11 +63,15 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
         <button
           className="icon-btn"
           type="button"
-          aria-label="Notifications"
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           onClick={() => onNavigate('notifications')}
         >
           <IconBell />
-          <span className="notif-dot" />
+          {unreadCount > 0 && (
+            <span className="notif-badge">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
       </div>
 

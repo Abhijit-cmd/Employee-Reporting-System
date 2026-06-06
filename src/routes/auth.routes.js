@@ -14,6 +14,7 @@ router.post("/logout", authController.logoutUser);
 // PROTECTED
 router.get("/profile", authMiddleware, authController.getProfile);
 router.get("/employees", authMiddleware, adminMiddleware, authController.getAllEmployees);
+router.put("/employees/:id", authMiddleware, adminMiddleware, authController.updateEmployee);
 router.delete("/employees/:id", authMiddleware, adminMiddleware, authController.deleteEmployee);
 
 module.exports = router;

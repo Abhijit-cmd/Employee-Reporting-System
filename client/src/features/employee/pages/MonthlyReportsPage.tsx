@@ -108,8 +108,10 @@ export default function MonthlyReportsPage({ onNavigate }: Props) {
                 {rows.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                      <IconFileText />
-                      <p style={{ marginTop: 8 }}>No reports found.</p>
+                      <div style={{ width: 40, height: 40, margin: '0 auto 8px', opacity: 0.3, fontSize: 40 }}>
+                        <IconFileText />
+                      </div>
+                      <p style={{ margin: 0 }}>No reports found.</p>
                     </td>
                   </tr>
                 ) : rows.map((r, i) => (

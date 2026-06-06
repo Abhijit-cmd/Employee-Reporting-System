@@ -17,6 +17,7 @@ function NotifIcon({ type }: { type: string }) {
   switch (type) {
     case 'pending':  return <IconClock />
     case 'reviewed': return <IconTarget />
+    case 'target':   return <IconTarget />
     case 'report':   return <IconFileText />
     default:         return <IconMegaphone />
   }
@@ -26,6 +27,7 @@ function iconStyle(type: string): { bg: string; color: string } {
   switch (type) {
     case 'pending':  return { bg: '#fef3c7', color: '#f59e0b' }
     case 'reviewed': return { bg: '#d1fae5', color: '#10b981' }
+    case 'target':   return { bg: '#ede9fe', color: '#7c3aed' }
     default:         return { bg: '#fdecea', color: '#c62828' }
   }
 }
@@ -78,9 +80,11 @@ export default function NotificationsPage() {
 
         {!loading && !error && items.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
-            <IconMegaphone />
-            <p style={{ marginTop: 12 }}>No notifications yet.</p>
-            <p style={{ fontSize: 13 }}>You'll be notified when an admin reviews your reports.</p>
+            <div style={{ width: 48, height: 48, margin: '0 auto 12px', opacity: 0.3, fontSize: 48 }}>
+              <IconMegaphone />
+            </div>
+            <p style={{ margin: 0, fontWeight: 600 }}>No notifications yet.</p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>You'll be notified when an admin reviews your reports.</p>
           </div>
         )}
 

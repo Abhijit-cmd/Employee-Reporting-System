@@ -300,6 +300,7 @@ export default function CreateNewReport({ onBack }: Props) {
                 type="month"
                 value={toMonthValue(mmyyyy)}
                 onChange={(e) => setMmyyyy(fromMonthValue(e.target.value))}
+                onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
               />
             </div>
           </div>
