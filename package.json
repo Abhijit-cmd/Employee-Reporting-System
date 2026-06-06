@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "nodemon src/server.js",
-    "dev:client": "cd Client && npm run dev",
-    "install:all": "npm install && cd Client && npm install",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && cd client && npm install",
     "start": "node src/server.js"
   },
   "prisma": {
