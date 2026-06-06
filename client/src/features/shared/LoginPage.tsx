@@ -219,10 +219,14 @@ resetForm()
 
         <div className="login-right">
           <div className="login-card">
-            <div className="login-card-title">Login to Your Account</div>
-            <div className="login-card-sub">Choose your role and sign in to continue</div>
+            <div className="login-card-title">
+              {isRegister ? 'Create Employee Account' : 'Login to Your Account'}
+            </div>
+            <div className="login-card-sub">
+              {isRegister ? 'Fill in your details to register as an employee' : 'Choose your role and sign in to continue'}
+            </div>
 
-            <div className="login-roles">
+            {!isRegister && <div className="login-roles">
               <button
                 type="button"
                 className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
@@ -247,7 +251,7 @@ resetForm()
                 <div className="login-role-name">Employee</div>
                 <div className="login-role-sub">Employee Access</div>
               </button>
-            </div>
+            </div>}
 
             <form onSubmit={handleSubmit} noValidate>
               {isRegister && (
