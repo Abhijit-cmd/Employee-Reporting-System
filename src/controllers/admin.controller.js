@@ -149,6 +149,7 @@ exports.downloadReport = async (req, res) => {
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    doc.on("error", (err) => { console.error("PDF error:", err); res.destroy(); });
     doc.pipe(res);
     // TITLE
     doc.fontSize(20).text("Monthly Report", { align: "center" });
@@ -213,6 +214,7 @@ exports.downloadAllReports = async (req, res) => {
     const doc = new PDFDocument({ margin: 40 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="all-reports.pdf"');
+    doc.on("error", (err) => { console.error("PDF error:", err); res.destroy(); });
     doc.pipe(res);
 
     // TITLE

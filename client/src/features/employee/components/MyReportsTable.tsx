@@ -11,7 +11,11 @@ import { formatDateTime, formatMmyyyy, statusClass } from '../../../lib/utils'
 
 const PAGE_SIZE = 5
 
-export default function MyReportsTable() {
+interface Props {
+  onNavigate?: (page: string) => void
+}
+
+export default function MyReportsTable({ onNavigate }: Props) {
   const [page, setPage] = useState(1)
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +55,7 @@ export default function MyReportsTable() {
     <div className="card">
       <div className="card-header">
         <span className="card-title">Monthly Reports</span>
-        <button className="card-action" type="button">
+        <button className="card-action" type="button" onClick={() => onNavigate?.('monthly-reports')}>
           View all
         </button>
       </div>
@@ -95,7 +99,12 @@ export default function MyReportsTable() {
               </td>
               <td>{formatDateTime(r.createdAt)}</td>
               <td>
-                <button type="button" className="action-btn">
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => onNavigate?.('monthly-reports')}
+                  title={r.reportStatus?.statusName === 'Draft' ? 'Edit draft' : 'View report'}
+                >
                   {r.reportStatus?.statusName === 'Draft' ? <IconEdit /> : <IconEye />}
                 </button>
               </td>

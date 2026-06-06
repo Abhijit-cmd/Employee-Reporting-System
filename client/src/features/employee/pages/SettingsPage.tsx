@@ -117,10 +117,10 @@ export default function SettingsPage({ onBack }: Props) {
               </div>
               <div className="st-profile-fields">
                 <div className="st-field-grid">
-                  <div className="st-field"><label className="st-label">Full Name</label><input className="st-input" type="text" value={fullName} onChange={e => setFullName(e.target.value)} /></div>
-                  <div className="st-field"><label className="st-label">Email Address</label><input className="st-input" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
-                  <div className="st-field"><label className="st-label">Phone Number</label><input className="st-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} /></div>
-                  <div className="st-field"><label className="st-label">Employee ID</label><input className="st-input" type="text" value={empId} onChange={e => setEmpId(e.target.value)} /></div>
+                  <div className="st-field"><label className="st-label">Full Name</label><input className="st-input" type="text" value={fullName} readOnly /></div>
+                  <div className="st-field"><label className="st-label">Email Address</label><input className="st-input" type="email" value={email} readOnly /></div>
+                  <div className="st-field"><label className="st-label">Phone Number</label><input className="st-input" type="tel" value={phone} readOnly /></div>
+                  <div className="st-field"><label className="st-label">Employee ID</label><input className="st-input" type="text" value={empId} readOnly /></div>
                 </div>
                 <div className="st-actions-row">
                  

@@ -381,6 +381,7 @@ exports.getAllEmployees = async (req, res) => {
       email: employee.email,
       phone: employee.phone,
       status: employee.status,
+      createdAt: employee.createdAt,
       role: employee.role?.roleName || "Unknown",
     }));
 
@@ -407,6 +408,11 @@ exports.deleteEmployee = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Prevent self-deletion
+    if (id === req.user.id) {
+      return res.status(403).json({ message: "Cannot delete your own account" });
     }
 
     // Prevent deletion of admin accounts

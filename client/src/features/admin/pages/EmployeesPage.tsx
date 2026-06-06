@@ -92,7 +92,6 @@ interface ModalProps {
 function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -117,8 +116,9 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
       return
     }
   
-    if (password.length < 8) {
-      showToast('Password must be at least 8 characters', 'error')
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+    if (!passwordRegex.test(password)) {
+      showToast('Password must be at least 8 characters and include uppercase, lowercase, and a number', 'error')
       return
     }
   
@@ -129,7 +129,6 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          employeeId: employeeId.trim() || `EMP${Date.now()}`,
           phone: phone.trim(),
           password,
           role: 'employee',
@@ -160,10 +159,6 @@ function AddEmployeeModal({ onClose, onAdded }: ModalProps) {
           <div className="emp-modal-field">
             <label className="emp-modal-label">Email Address *</label>
             <input className="emp-modal-input" type="email" placeholder="Enter email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </div>
-          <div className="emp-modal-field">
-            <label className="emp-modal-label">Employee ID</label>
-            <input className="emp-modal-input" type="text" placeholder="Employee ID" value={employeeId} onChange={e => setEmployeeId(e.target.value)} />
           </div>
           <div className="emp-modal-field">
             <label className="emp-modal-label">Phone</label>
@@ -236,7 +231,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     return () => {
       abortController.abort()
     }
-  }, [search, fetchEmployees])
+  }, [fetchEmployees])
 
   async function handleDelete(id: number | null) {
     if (!id) {

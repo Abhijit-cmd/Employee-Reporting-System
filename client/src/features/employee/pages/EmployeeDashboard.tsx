@@ -36,10 +36,12 @@ export default function EmployeeDashboard({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     apiFetch<Report[]>('/api/reports/my-reports')
-      .then(setReports)
+      .then((data) => { if (!cancelled) setReports(Array.isArray(data) ? data : []) })
       .catch(console.error)
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   const lineData = buildLineData(reports)
@@ -79,7 +81,7 @@ export default function EmployeeDashboard({ onNavigate }: Props) {
       </div>
 
       <div className="emp-bottom-row">
-        <MyReportsTable />
+        <MyReportsTable onNavigate={onNavigate} />
         <QuickActions onNavigate={onNavigate} />
       </div>
     </main>

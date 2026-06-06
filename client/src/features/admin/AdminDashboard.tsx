@@ -153,7 +153,7 @@ function RecentNotificationsCard({
   reports: Report[]
   onNavigate: (p: string) => void
 }) {
-  const notifications = reports.slice(0, 4).map((r, i) => ({
+  const notifications = reports.slice(0, 4).map((r) => ({
     id: r.id,
     icon: r.reportStatus?.statusName === 'Pending' ? 'pending' : 'report',
     color: '#d1fae5',
@@ -161,7 +161,6 @@ function RecentNotificationsCard({
     title: `${r.user?.name ?? 'Employee'} — ${formatMmyyyy(r.mmyyyy)}`,
     desc: `Status: ${r.reportStatus?.statusName}`,
     time: relativeTime(r.createdAt),
-    key: i,
   }))
 
   return (

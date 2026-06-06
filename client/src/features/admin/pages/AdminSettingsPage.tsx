@@ -127,19 +127,19 @@ export default function AdminSettingsPage({ onBack }: Props) {
                 <div className="st-field-grid">
                   <div className="st-field">
                     <label className="st-label">Full Name</label>
-                    <input className="st-input" type="text" value={fullName} onChange={e => setFullName(e.target.value)} />
+                    <input className="st-input" type="text" value={fullName} readOnly />
                   </div>
                   <div className="st-field">
                     <label className="st-label">Email Address</label>
-                    <input className="st-input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    <input className="st-input" type="email" value={email} readOnly />
                   </div>
                   <div className="st-field">
                     <label className="st-label">Phone Number</label>
-                    <input className="st-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+                    <input className="st-input" type="tel" value={phone} readOnly />
                   </div>
                   <div className="st-field">
                     <label className="st-label">Admin ID</label>
-                    <input className="st-input" type="text" value={adminId} onChange={e => setAdminId(e.target.value)} />
+                    <input className="st-input" type="text" value={adminId} readOnly />
                   </div>
                 </div>
                 <div className="st-actions-row">

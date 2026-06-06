@@ -94,10 +94,10 @@ exports.createReport = async (req, res) => {
         successStories: Number(successStories),
         websiteVisitors: Number(websiteVisitors),
 
-        challenges: challenges || "",
-        salesBooking: salesBooking || "",
-        targetVsAchievement: targetVsAchievement || "",
-        accomplishments: accomplishments || "",
+        challenges: (challenges || "").trim(),
+        salesBooking: (salesBooking || "").trim(),
+        targetVsAchievement: (targetVsAchievement || "").trim(),
+        accomplishments: (accomplishments || "").trim(),
 
         user: { connect: { id: req.user.id } },
         reportStatus: { connect: { id: submittedStatus.id } },
