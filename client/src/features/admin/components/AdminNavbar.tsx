@@ -34,7 +34,6 @@ function IcoCalendar() {
 function NavCalendar() {
   const today = new Date()
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Date>(today)
   const [viewYear, setViewYear] = useState(today.getFullYear())
 const [viewMonth, setViewMonth] = useState(today.getMonth())
   const ref = useRef<HTMLDivElement>(null)
@@ -124,9 +123,7 @@ const [viewMonth, setViewMonth] = useState(today.getMonth())
                   key={day}
                   type="button"
                   className="rp-cal-day"
-                  onClick={() => {
-                    setSelected(new Date(viewYear, viewMonth, day))
-                  }}
+                  onClick={() => setOpen(false)}
                 >
                   {day}
                 </button>

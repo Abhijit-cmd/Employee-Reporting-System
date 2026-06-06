@@ -103,10 +103,18 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
               ) : error ? (
                 <span
                   className="nav-badge"
-                  style={{ background: '#f87171' }}
+                  role="button"
+                  tabIndex={0}
+                  style={{ background: '#f87171', cursor: 'pointer' }}
                   onClick={(e) => {
                     e.stopPropagation()
                     fetchPendingCount()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation()
+                      fetchPendingCount()
+                    }
                   }}
                   title="Retry"
                 >!</span>

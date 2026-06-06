@@ -443,7 +443,7 @@ export default function CreateNewReport({ onBack }: Props) {
           <div className="cnr-card-body">
             <div className="cnr-textarea-section">
               <div className="cnr-textarea-label">
-              Sales Booking Productwise Quantity & Value &amp; Value<span className="req">*</span>
+              Sales Booking Productwise Quantity &amp; Value<span className="req">*</span>
               </div>
               <textarea
                 className="cnr-textarea"
