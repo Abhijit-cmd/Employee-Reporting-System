@@ -1,23 +1,26 @@
 {
-  "name": "employee-reporting-system",
+  "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "src/server.js",
-  "type": "commonjs",
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
+  "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "nodemon src/server.js",
-    "dev:client": "cd client && npm run dev",
-    "start": "node src/server.js",
-    "install:all": "npm install && cd client && npm install",
-    "postinstall": "prisma generate"
+    "dev:client": "cd Client && npm run dev",
+    "install:all": "npm install && cd Client && npm install",
+    "start": "node src/server.js"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -29,12 +32,7 @@
     "prisma": "^6.19.3"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.1",
     "nodemon": "^3.1.14"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Abhijit-cmd/Employee-Reporting-System.git"
-  },
-  "license": "ISC"
+  }
 }

@@ -1,6 +1,6 @@
 const prisma = require("../prisma/prismaClient");
 
-// ── CREATE REPORT ──────────────────────────────────────────────────────────────
+// ── CREATE REPORT ─────────────────────────────────────────────────────────────
 exports.createReport = async (req, res) => {
   try {
     const {
@@ -15,7 +15,7 @@ exports.createReport = async (req, res) => {
     });
 
     if (!submittedStatus) {
-      return res.status(500).json({ message: "Report status not configured" });
+      return res.status(500).json({ message: "Report status not found" });
     }
 
     const report = await prisma.report.create({
@@ -37,70 +37,58 @@ exports.createReport = async (req, res) => {
 
     res.status(201).json({ message: "Report created successfully", report });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to create report" });
   }
 };
 
-// ── MARK PENDING ───────────────────────────────────────────────────────────────
+// ── MARK PENDING ──────────────────────────────────────────────────────────────
 exports.markPending = async (req, res) => {
   try {
-    const id = Number(req.params.reportId);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid report ID" });
-
+    const { reportId } = req.params;
     const pendingStatus = await prisma.reportStatus.findFirst({
       where: { statusName: "Pending" },
     });
-    if (!pendingStatus) return res.status(500).json({ message: "Status not configured" });
-
     await prisma.report.update({
-      where: { id },
+      where: { id: Number(reportId) },
       data: { reportStatus: { connect: { id: pendingStatus.id } } },
     });
     res.status(200).json({ message: "Report marked as Pending" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to update status" });
   }
 };
 
-// ── MARK REVIEWED ──────────────────────────────────────────────────────────────
+// ── MARK REVIEWED ─────────────────────────────────────────────────────────────
 exports.markReviewed = async (req, res) => {
   try {
-    const id = Number(req.params.reportId);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid report ID" });
-
+    const { reportId } = req.params;
     const reviewedStatus = await prisma.reportStatus.findFirst({
-      where: { statusName: "Submitted" },
+      where: { statusName: "Reviewed" },
     });
-    if (!reviewedStatus) return res.status(500).json({ message: "Status not configured" });
-
     await prisma.report.update({
-      where: { id },
+      where: { id: Number(reportId) },
       data: { reportStatus: { connect: { id: reviewedStatus.id } } },
     });
     res.status(200).json({ message: "Report marked as Reviewed" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to update status" });
   }
 };
 
-// ── GET ALL REPORTS ────────────────────────────────────────────────────────────
+// ── GET ALL REPORTS ───────────────────────────────────────────────────────────
 exports.getReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
-      include: { user: { select: { id: true, name: true, employeeId: true, email: true } }, reportStatus: true },
+      include: { user: true, reportStatus: true },
       orderBy: { createdAt: "desc" },
     });
     res.status(200).json(reports);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to fetch reports" });
   }
 };
 
-// ── GET MY REPORTS ─────────────────────────────────────────────────────────────
+// ── GET MY REPORTS ────────────────────────────────────────────────────────────
 exports.getMyReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
@@ -110,7 +98,6 @@ exports.getMyReports = async (req, res) => {
     });
     res.status(200).json(reports);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Failed to fetch reports" });
   }
 };
