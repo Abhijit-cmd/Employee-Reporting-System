@@ -64,7 +64,7 @@ exports.getEmployeeTargetAchievements = async (req, res) => {
 
     // Transform the data to what the frontend needs
     const data = targets.map(target => ({
-      employeeName: target.employee.name,
+      employeeName: target.employee?.name ?? 'Unknown',
       targetValue: target.targetValue,
       achievedValue: target.achievedValue,
     }));
@@ -82,7 +82,10 @@ exports.getReportById = async (req, res) => {
     if (isNaN(reportId)) return errorResponse(res, "Invalid report ID", 400);
     const report = await prisma.report.findUnique({
       where: { id: reportId },
-      include: { user: true, reportStatus: true },
+      include: {
+        user: { select: { id: true, name: true, employeeId: true, email: true } },
+        reportStatus: true,
+      },
     });
 
     if (!report) {
@@ -102,7 +105,10 @@ exports.getAllReports = async (req, res) => {
 
     const [reports, total] = await Promise.all([
       prisma.report.findMany({
-        include: { user: true, reportStatus: true },
+        include: {
+          user: { select: { id: true, name: true, employeeId: true, email: true } },
+          reportStatus: true,
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take: pageSize,

@@ -186,7 +186,7 @@ exports.getReports = async (req, res) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        user: true,
+        user: { select: { id: true, name: true, employeeId: true, email: true } },
         reportStatus: true,
       },
       orderBy: {

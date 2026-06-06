@@ -81,12 +81,11 @@ export default function LoginPage() {
 
       const data = await response.json()
 
-
-      if (!response.ok || !data?.user) {
-  setError(data?.message || 'Invalid login response')
-  setLoading(false)
-  return
-}
+      if (!response.ok) {
+        setError(data?.message || 'Request failed')
+        setLoading(false)
+        return
+      }
 
       if (isRegister) {
         showToast('Registered successfully. Please log in.', 'success')
@@ -95,10 +94,13 @@ resetForm()
         return
       }
 
-      // Store user info (tokens are in httpOnly cookies)
-      if (data?.user) {
-        saveUser(data.user)
+      if (!data?.user) {
+        setError('Invalid login response')
+        setLoading(false)
+        return
       }
+
+      saveUser(data.user)
 
       const userRole =
   typeof data.user?.role === 'string'
@@ -294,7 +296,7 @@ resetForm()
                 <>
                   Already have an account?
                   <button type="button" className="login-register-link" onClick={() => {
- setIsRegister(true)
+ setIsRegister(false)
  resetAuthState()
 }}>
                     Login

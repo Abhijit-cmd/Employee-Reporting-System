@@ -57,7 +57,7 @@ export interface ApiEmployee {
 
 export interface Target {
   id: number
-  employeeId: number
+  userId: number
   targetTitle: string
   description?: string | null
   targetValue: number

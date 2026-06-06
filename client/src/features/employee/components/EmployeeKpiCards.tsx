@@ -21,6 +21,7 @@ export default function EmployeeKpiCards() {
     async function load() {
       try {
         const response = await apiFetch<any>('/api/reports/my-reports')
+      if (cancelled) return
 const list: Report[] = Array.isArray(response)
   ? response
   : response?.data ?? []

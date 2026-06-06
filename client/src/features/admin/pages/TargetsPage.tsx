@@ -235,7 +235,7 @@ export default function TargetsPage() {
                   rows.map(({ t, progress, achieved }) => (
                     <tr key={t.id}>
                       <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                        {t.employee?.employeeId ?? t.employeeId}
+                        {t.employee?.employeeId ?? '—'}
                       </td>
                       <td style={{ fontWeight: 600 }}>{t.targetTitle}</td>
                       <td className="tg-desc-cell">{t.description ?? '—'}</td>
