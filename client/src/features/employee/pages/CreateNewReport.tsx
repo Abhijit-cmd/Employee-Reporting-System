@@ -3,6 +3,7 @@ import { IconFileText, IconPlus } from '../../shared/icons'
 import { apiFetch } from '../../../lib/api'
 import { getStoredUser } from '../../../lib/auth'
 import { showToast } from '../../../lib/feedback'
+import { safeSetItem, safeGetItem } from '../../../lib/utils'
 
 const DRAFT_KEY = 'report_draft'
 const DRAFT_VERSION = 1
@@ -25,22 +26,6 @@ interface ReportDraft {
   accomplishments: string
 }
 
-function safeSetItem(key: string, value: string): boolean {
-  try {
-    localStorage.setItem(key, value)
-    return true
-  } catch (e) {
-    return false
-  }
-}
-
-function safeGetItem(key: string): string | null {
-  try {
-    return localStorage.getItem(key)
-  } catch (e) {
-    return null
-  }
-}
 
 function isValidDraft(d: any): d is ReportDraft {
   return (

@@ -4,9 +4,11 @@ const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 async function main() {
-  // =========================
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+    throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in environment variables");
+  }
+
   // SEED ROLES
-  // =========================
   await prisma.role.createMany({
     data: [
       { roleName: "Admin" },
@@ -17,24 +19,17 @@ async function main() {
 
   console.log("Roles seeded successfully");
 
-  // =========================
-  // GET ADMIN ROLE
-  // =========================
   const adminRole = await prisma.role.findFirst({
     where: { roleName: "Admin" },
   });
 
-  // =========================
-  // HASH PASSWORD
-  // =========================
-  const hashedPassword = await bcrypt.hash(
-    process.env.ADMIN_PASSWORD,
-    10
-  );
+  if (!adminRole) {
+    throw new Error("Admin role not found after seeding — check for DB errors");
+  }
 
-  // =========================
+  const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+
   // SEED ADMIN USER
-  // =========================
   await prisma.user.createMany({
     data: [
       {
@@ -51,9 +46,7 @@ async function main() {
 
   console.log("Admin seeded successfully");
 
-  // =========================
   // SEED REPORT STATUSES
-  // =========================
   await prisma.reportStatus.createMany({
     data: [
       { statusName: "Pending" },

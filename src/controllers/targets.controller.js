@@ -65,7 +65,7 @@ exports.createTarget = async (req, res) => {
 
     const created = await prisma.target.create({
       data: {
-        employeeId: employee.id,
+        userId: employee.id,
         targetTitle: String(targetTitle),
         description: description ? String(description) : null,
         targetValue: tv,

@@ -198,6 +198,7 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
-    @@index([userId])
 
+  @@index([userId])
+  @@map("refresh_tokens")
 }

@@ -10,6 +10,8 @@ import { initials } from '../../../lib/utils'
 interface Props {
   page: string
   onNavigate: (page: string) => void
+  searchQuery: string
+  onSearchChange: (q: string) => void
 }
 
 const MONTHS_SHORT = [
@@ -153,7 +155,8 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
 export default function AdminNavbar({
   page,
   onNavigate,
-  
+  searchQuery,
+  onSearchChange,
 }: Props) {
   const user = getStoredUser()
   const meta = PAGE_TITLES[page] ?? PAGE_TITLES.dashboard
@@ -169,7 +172,17 @@ export default function AdminNavbar({
             : meta.sub}
         </p>
       </div>
-    
+
+      <div className="navbar-search">
+        <input
+          className="navbar-search-input"
+          type="text"
+          placeholder="Search employees…"
+          value={searchQuery}
+          onChange={e => onSearchChange(e.target.value)}
+        />
+      </div>
+
       <NavCalendar />
       <div className="navbar-actions">
         <button

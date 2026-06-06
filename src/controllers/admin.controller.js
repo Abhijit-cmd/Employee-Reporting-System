@@ -79,6 +79,7 @@ exports.getEmployeeTargetAchievements = async (req, res) => {
 exports.getReportById = async (req, res) => {
   try {
     const reportId = Number(req.params.id);
+    if (isNaN(reportId)) return errorResponse(res, "Invalid report ID", 400);
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: { user: true, reportStatus: true },
@@ -124,6 +125,7 @@ exports.getAllReports = async (req, res) => {
 exports.downloadReport = async (req, res) => {
   try {
     const reportId = Number(req.params.id);
+    if (isNaN(reportId)) return errorResponse(res, "Invalid report ID", 400);
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: { user: true, reportStatus: true },
@@ -192,10 +194,9 @@ exports.downloadAllReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
       include: { user: true, reportStatus: true },
-      take: 10,
+      orderBy: { createdAt: "desc" },
     });
 
-    const PDFDocument = require("pdfkit");
     const doc = new PDFDocument({ margin: 40 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="all-reports.pdf"');

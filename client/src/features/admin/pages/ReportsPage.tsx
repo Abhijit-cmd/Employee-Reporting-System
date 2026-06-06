@@ -516,7 +516,11 @@ function ReportsList({ onView }: { onView: (r: Report) => void }) {
 }
  
 // ── Root ──────────────────────────────────────────────────────────────────────
-export default function ReportsPage() {
+interface ReportsPageProps {
+  onNavigate?: (page: string) => void
+}
+
+export default function ReportsPage({ onNavigate: _onNavigate }: ReportsPageProps) {
   const [viewReport, setViewReport] = useState<Report | null>(null)
 
   return (

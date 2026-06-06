@@ -5,9 +5,8 @@ type ThemeListener = (mode: ThemeMode) => void
 let current: ThemeMode = (localStorage.getItem('theme') as ThemeMode) ?? 'light'
 const listeners = new Set<ThemeListener>()
 
-/** Apply the theme class to <html> */
 function applyTheme(mode: ThemeMode) {
-  document.documentElement.classList.toggle('dark', mode === 'dark')
+  document.documentElement.setAttribute('data-theme', mode)
 }
 
 // Apply on load

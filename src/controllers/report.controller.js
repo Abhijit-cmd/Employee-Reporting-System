@@ -4,7 +4,7 @@ const prisma = require("../prisma/prismaClient");
 exports.createReport = async (req, res) => {
   try {
     const {
-      reportMonth, businessOwner, preparedBy, reviewedBy,
+      mmyyyy, businessOwner, preparedBy, reviewedBy,
       customersRegistered, suppliersRegistered, newBrandProducts,
       successStories, websiteVisitors,
       challenges, salesBooking, targetVsAchievement, accomplishments,
@@ -67,6 +67,7 @@ exports.createReport = async (req, res) => {
     if (!submittedStatus) {
       return res.status(500).json({ message: "Report status not found" });
     }
+
     const existingReport = await prisma.report.findFirst({
       where: {
         userId: req.user.id,
@@ -105,6 +106,7 @@ exports.createReport = async (req, res) => {
 
     res.status(201).json({ message: "Report created successfully", report });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Failed to create report" });
   }
 };
@@ -112,39 +114,70 @@ exports.createReport = async (req, res) => {
 // ── MARK PENDING ────────────────────────────────────────────────────────────────────
 exports.markPending = async (req, res) => {
   try {
-    const { reportId } = req.params;
+    const reportId = Number(req.params.reportId);
+
+    if (isNaN(reportId)) {
+      return res.status(400).json({ message: "Invalid report ID" });
+    }
+
     const pendingStatus = await prisma.reportStatus.findFirst({
       where: { statusName: "Pending" },
     });
+
+    if (!pendingStatus) {
+      return res.status(500).json({ message: "Pending status not found" });
+    }
+
+    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+    if (!existing) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
     await prisma.report.update({
-      where: { id: Number(reportId) },
+      where: { id: reportId },
       data: { reportStatus: { connect: { id: pendingStatus.id } } },
     });
     res.status(200).json({ message: "Report marked as Pending" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to create report" });
+    res.status(500).json({ message: "Failed to update report status" });
   }
 };
 
 // ── MARK REVIEWED ────────────────────────────────────────────────────────────────────
 exports.markReviewed = async (req, res) => {
   try {
-    const { reportId } = req.params;
+    const reportId = Number(req.params.reportId);
+
+    if (isNaN(reportId)) {
+      return res.status(400).json({ message: "Invalid report ID" });
+    }
+
     const reviewedStatus = await prisma.reportStatus.findFirst({
       where: { statusName: "Reviewed" },
     });
+
+    if (!reviewedStatus) {
+      return res.status(500).json({ message: "Reviewed status not found" });
+    }
+
+    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+    if (!existing) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
     await prisma.report.update({
-      where: { id: Number(reportId) },
+      where: { id: reportId },
       data: { reportStatus: { connect: { id: reviewedStatus.id } } },
     });
     res.status(200).json({ message: "Report marked as Reviewed" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update status" });
+    console.error(error);
+    res.status(500).json({ message: "Failed to update report status" });
   }
 };
 
-// ── GET ALL REPORTS ────────────────────────────────────────────────────────────────────
+// ── GET ALL REPORTS (admin only) ────────────────────────────────────────────────────
 exports.getReports = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;

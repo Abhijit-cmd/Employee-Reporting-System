@@ -56,21 +56,21 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const fetchPendingCount = async () => {
+  const fetchPendingCount = async (signal?: AbortSignal) => {
     setLoading(true)
     setError('')
     try {
-      const reports = await apiFetch<Report[]>('/api/reports/my-reports')
+      const reports = await apiFetch<Report[]>('/api/reports/my-reports', { signal })
       const list = Array.isArray(reports) ? reports : []
       const count = list.filter((r) =>
         ['Pending', 'Draft'].includes(r.reportStatus?.statusName ?? ''),
       ).length
       setPendingCount(count)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
       console.error('Failed to load pending count:', err)
       const msg = err instanceof Error ? err.message : 'Failed to load pending count'
       setError(msg)
-      showToast(msg, 'error')
       setPendingCount(null)
     } finally {
       setLoading(false)
@@ -78,7 +78,9 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
   }
 
   useEffect(() => {
-    fetchPendingCount()
+    const controller = new AbortController()
+    fetchPendingCount(controller.signal)
+    return () => controller.abort()
   }, [])
 
   return (

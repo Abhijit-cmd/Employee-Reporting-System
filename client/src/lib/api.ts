@@ -6,14 +6,6 @@ interface FetchOptions extends RequestInit {
   body?: BodyInit | null
 }
 
-// Flag to prevent multiple simultaneous refresh attempts
-let isRefreshing = false
-// Queue of requests waiting for refresh to complete
-let refreshQueue: Array<{
-  resolve: (value: boolean) => void
-  reject: (reason?: any) => void
-}> = []
-
 async function tryRefreshTokens(): Promise<boolean> {
   try {
     const response = await fetch(
@@ -93,14 +85,12 @@ export async function apiFetch<T = unknown>(
 
   // Handle 403 errors
   if (response.status === 403) {
+    let errorMsg = 'Access denied.'
     if (response.headers.get('content-type')?.includes('application/json')) {
       const err = await response.json()
-      const errorMsg = err.message ?? 'Access denied.'
-      handleGlobalError(errorMsg, path)
-      throw new Error(errorMsg)
+      errorMsg = err.message ?? errorMsg
     }
-    const errorMsg = 'Access denied.'
-    handleGlobalError(errorMsg, path)
+    showToast(errorMsg, 'error')
     throw new Error(errorMsg)
   }
 

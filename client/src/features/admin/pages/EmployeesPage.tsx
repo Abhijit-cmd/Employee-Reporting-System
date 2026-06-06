@@ -238,15 +238,13 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
 
   useEffect(() => {
     const abortController = new AbortController()
-    debouncedFetch()
+    fetchEmployees(abortController.signal)
     return () => {
       abortController.abort()
     }
-  }, [search, debouncedFetch])
+  }, [search, fetchEmployees])
 
   async function handleDelete(id: number | null) {
-    console.log("DELETE REQUEST ID:", id)
-
     if (!id) {
       showToast("Invalid employee ID", "error")
       return
@@ -255,18 +253,15 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     setDeleting(true)
 
     try {
-      const res = await apiFetch(`/api/auth/employees/${id}`, {
+      await apiFetch(`/api/auth/employees/${id}`, {
         method: 'DELETE',
       })
-
-      console.log("DELETE RESPONSE:", res)
 
       showToast('Employee removed', 'success')
       setDeleteId(null)
       setDeleteEmployeeName('')
       fetchEmployees()
     } catch (err) {
-      console.error("DELETE ERROR FULL:", err)
       showToast(err instanceof Error ? err.message : 'Failed to delete employee', 'error')
     } finally {
       setDeleting(false)

@@ -95,7 +95,7 @@ export default function MyReportsTable() {
               </td>
               <td>{formatDateTime(r.createdAt)}</td>
               <td>
-                <button className="action-btn">
+                <button type="button" className="action-btn">
                   {r.reportStatus?.statusName === 'Draft' ? <IconEdit /> : <IconEye />}
                 </button>
               </td>
