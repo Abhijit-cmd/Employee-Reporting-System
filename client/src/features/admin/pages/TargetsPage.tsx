@@ -52,7 +52,25 @@ export default function TargetsPage() {
   }
 
   useEffect(() => {
-    load()
+    let cancelled = false
+
+    async function init() {
+      setLoading(true)
+      try {
+        const data = await apiFetch<Target[]>('/api/admin/targets')
+        if (cancelled) return
+        setTargets(Array.isArray(data) ? data : [])
+      } catch (err) {
+        if (cancelled) return
+        showToast(err instanceof Error ? err.message : 'Failed to load targets', 'error')
+        setTargets([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    init()
+    return () => { cancelled = true }
   }, [])
 
   const rows = useMemo(() => {

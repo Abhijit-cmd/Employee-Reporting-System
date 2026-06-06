@@ -46,7 +46,26 @@ export default function SettingsPage({ onBack }: Props) {
     if (prefs.reportRemind !== undefined) setReportRemind(prefs.reportRemind)
     if (prefs.announceNotif !== undefined) setAnnounceNotif(prefs.announceNotif)
 
-    fetchProfile()
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    apiFetch<{ name?: string; email?: string; phone?: string; employeeId?: string }>('/api/auth/profile')
+      .then((data) => {
+        if (cancelled) return
+        setFullName(data.name || '')
+        setEmail(data.email || '')
+        setPhone(data.phone || '')
+        setEmpId(data.employeeId || '')
+      })
+      .catch((err) => {
+        if (cancelled) return
+        const msg = err instanceof Error ? err.message : 'Could not load profile'
+        setError(msg)
+        showToast(msg, 'error')
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
   }, [])
 
   function handleSaveSettings() {
