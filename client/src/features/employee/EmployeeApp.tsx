@@ -4,6 +4,8 @@ import EmployeeNavbar from './components/EmployeeNavbar'
 import EmployeeDashboard from '../../features/employee/EmployeeDashboard'
 import CreateNewReport from './pages/CreateNewReport'
 import SettingsPage from './pages/SettingsPage'
+import MonthlyReportsPage from './pages/MonthlyReportsPage'
+import AchievementsPage from './pages/AchievementsPage'
 
 function EmployeePageContent({
   page,
@@ -17,6 +19,10 @@ function EmployeePageContent({
       return <CreateNewReport onBack={() => onNavigate('home')} />
     case 'settings':
       return <SettingsPage onBack={() => onNavigate('home')} />
+    case 'monthly-reports':
+      return <MonthlyReportsPage onNavigate={onNavigate} />
+    case 'achievements':
+      return <AchievementsPage onNavigate={onNavigate} />
     default:
       return <EmployeeDashboard onNavigate={onNavigate} />
   }
