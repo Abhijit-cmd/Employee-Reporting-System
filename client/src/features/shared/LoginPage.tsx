@@ -128,11 +128,7 @@ resetForm()
       <div className="login-container">
         <div className="login-left">
           <div className="login-logo">
-            <div className="login-logo-icon">CM</div>
-            <div className="login-logo-text">
-              Constro<span>Mat</span>
-              <span className="login-logo-tm">™</span>
-            </div>
+            <img src="/logo.png" alt="ConstroMat" className="login-logo-img" />
           </div>
           <div className="login-welcome">Welcome Back!</div>
           <div className="login-welcome-sub">

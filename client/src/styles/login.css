@@ -34,36 +34,15 @@
 .login-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
-.login-logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-}
-
-.login-logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-
-.login-logo-text span {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.login-logo-tm {
-  font-size: 10px;
-  vertical-align: super;
-  margin-left: 1px;
+.login-logo-img {
+  width: 180px;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .login-welcome {
