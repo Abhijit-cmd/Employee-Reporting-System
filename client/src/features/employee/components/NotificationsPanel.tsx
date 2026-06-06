@@ -46,15 +46,10 @@ export default function NotificationsPanel() {
     try {
       const reports = await apiFetch<Report[]>('/api/reports/my-reports')
       const list = Array.isArray(reports) ? reports.slice(0, 4) : []
-
       const mapped: NotificationItem[] = list.map((r) => {
         const status = (r.reportStatus?.statusName || '').toLowerCase()
-
         const icon: NotifType =
-          status === 'pending' || status === 'draft'
-            ? 'pending'
-            : 'report'
-
+          status === 'pending' || status === 'draft' ? 'pending' : 'report'
         return {
           id: r.id,
           icon,
@@ -65,7 +60,6 @@ export default function NotificationsPanel() {
           time: relativeTime(r.createdAt),
         }
       })
-
       setItems(mapped)
     } catch (err) {
       console.error('Failed to load notifications:', err)
@@ -79,7 +73,44 @@ export default function NotificationsPanel() {
   }
 
   useEffect(() => {
-    fetchNotifications()
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setError('')
+      try {
+        const reports = await apiFetch<Report[]>('/api/reports/my-reports')
+        if (cancelled) return
+        const list = Array.isArray(reports) ? reports.slice(0, 4) : []
+        const mapped: NotificationItem[] = list.map((r) => {
+          const status = (r.reportStatus?.statusName || '').toLowerCase()
+          const icon: NotifType =
+            status === 'pending' || status === 'draft' ? 'pending' : 'report'
+          return {
+            id: r.id,
+            icon,
+            color: '#d1fae5',
+            iconColor: '#10b981',
+            title: `Report for ${formatMmyyyy(r.mmyyyy)}`,
+            desc: `Status: ${r.reportStatus?.statusName}`,
+            time: relativeTime(r.createdAt),
+          }
+        })
+        setItems(mapped)
+      } catch (err) {
+        if (cancelled) return
+        console.error('Failed to load notifications:', err)
+        const msg = err instanceof Error ? err.message : 'Failed to load notifications'
+        setError(msg)
+        showToast(msg, 'error')
+        setItems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
   return (

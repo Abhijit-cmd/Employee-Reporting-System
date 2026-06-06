@@ -120,15 +120,15 @@ function ReportsByStatusCard({ reports }: { reports: Report[] }) {
                   dataKey="value"
                   strokeWidth={0}
                 >
-                  {donutData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                  {donutData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="donut-legend">
-              {donutData.map((d, i) => (
-                <div className="legend-item" key={i}>
+              {donutData.map((d) => (
+                <div className="legend-item" key={d.name}>
                   <div className="legend-dot" style={{ background: d.color }} />
                   <span className="legend-label">{d.name}</span>
                   <span className="legend-val">{d.value}</span>
