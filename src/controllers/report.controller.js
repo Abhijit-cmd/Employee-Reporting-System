@@ -137,6 +137,16 @@ exports.markPending = async (req, res) => {
       where: { id: reportId },
       data: { reportStatus: { connect: { id: pendingStatus.id } } },
     });
+
+    await prisma.notification.create({
+      data: {
+        userId: existing.userId,
+        title: "Report Needs Attention",
+        message: `Your report for ${existing.mmyyyy} has been marked as Pending. Please review and resubmit.`,
+        notificationType: "pending",
+      },
+    }).catch(() => {});
+
     res.status(200).json({ message: "Report marked as Pending" });
   } catch (error) {
     console.error(error);
@@ -170,6 +180,16 @@ exports.markReviewed = async (req, res) => {
       where: { id: reportId },
       data: { reportStatus: { connect: { id: reviewedStatus.id } } },
     });
+
+    await prisma.notification.create({
+      data: {
+        userId: existing.userId,
+        title: "Report Reviewed",
+        message: `Your report for ${existing.mmyyyy} has been reviewed and approved by admin.`,
+        notificationType: "reviewed",
+      },
+    }).catch(() => {});
+
     res.status(200).json({ message: "Report marked as Reviewed" });
   } catch (error) {
     console.error(error);

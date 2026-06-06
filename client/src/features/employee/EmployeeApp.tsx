@@ -6,6 +6,8 @@ import CreateNewReport from './pages/CreateNewReport'
 import SettingsPage from './pages/SettingsPage'
 import MonthlyReportsPage from './pages/MonthlyReportsPage'
 import AchievementsPage from './pages/AchievementsPage'
+import NotificationsPage from './pages/NotificationsPage'
+import AnnouncementsPage from './pages/AnnouncementsPage'
 
 function EmployeePageContent({
   page,
@@ -23,6 +25,10 @@ function EmployeePageContent({
       return <MonthlyReportsPage onNavigate={onNavigate} />
     case 'achievements':
       return <AchievementsPage onNavigate={onNavigate} />
+    case 'notifications':
+      return <NotificationsPage />
+    case 'announcements':
+      return <AnnouncementsPage />
     default:
       return <EmployeeDashboard onNavigate={onNavigate} />
   }

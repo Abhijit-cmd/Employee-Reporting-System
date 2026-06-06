@@ -88,10 +88,12 @@ app.get("/", (_req, res) => {
 const authRoutes = require("./routes/auth.routes");
 const reportRoutes = require("./routes/report.routes");
 const adminRoutes = require("./routes/admin.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

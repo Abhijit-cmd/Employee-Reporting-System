@@ -3,6 +3,7 @@ const router = express.Router();
 
 const adminController = require("../controllers/admin.controller");
 const targetsController = require("../controllers/targets.controller");
+const announcementController = require("../controllers/announcement.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
@@ -19,5 +20,10 @@ router.get("/reports",authMiddleware,adminMiddleware,adminController.getAllRepor
 router.get("/reports/download/all", authMiddleware, adminMiddleware, adminController.downloadAllReports);
 router.get("/reports/:id", authMiddleware, adminMiddleware, adminController.getReportById);
 router.get("/reports/:id/download", authMiddleware, adminMiddleware, adminController.downloadReport);
+
+// Announcements (admin manage, all employees read)
+router.get("/announcements", authMiddleware, announcementController.getAnnouncements);
+router.post("/announcements", authMiddleware, adminMiddleware, announcementController.createAnnouncement);
+router.delete("/announcements/:id", authMiddleware, adminMiddleware, announcementController.deleteAnnouncement);
 
 module.exports = router;
