@@ -122,11 +122,11 @@ function AddEmployeeModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
     }
     setSubmitting(true)
     try {
-      await apiFetch('/api/auth/register', {
+      await apiFetch('/api/admin/employees', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), password, role: 'employee' }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), password }),
       })
-      showToast('Employee registered successfully', 'success')
+      showToast('Employee added successfully', 'success')
       onAdded()
       onClose()
     } catch (err) {
@@ -196,7 +196,7 @@ function EditEmployeeModal({
     try {
       const body: Record<string, string> = { name: name.trim(), email: email.trim(), phone: phone.trim() }
       if (password) body.password = password
-      await apiFetch(`/api/auth/employees/${employee.id}`, { method: 'PUT', body: JSON.stringify(body) })
+      await apiFetch(`/api/admin/employees/${employee.id}`, { method: 'PUT', body: JSON.stringify(body) })
       onUpdated({ name: name.trim(), email: email.trim(), phone: phone.trim() || null })
       showToast('Employee updated successfully', 'success')
       onClose()
@@ -420,7 +420,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch<ApiEmployee[]>(`/api/auth/employees?search=${encodeURIComponent(search)}`, { signal })
+      const data = await apiFetch<ApiEmployee[]>(`/api/admin/employees?search=${encodeURIComponent(search)}`, { signal })
       if (!mountedRef.current) return
       setEmployees(Array.isArray(data) ? data : [])
     } catch (err) {
@@ -443,7 +443,7 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
     if (!id) { showToast('Invalid employee ID', 'error'); return }
     setDeleting(true)
     try {
-      await apiFetch(`/api/auth/employees/${id}`, { method: 'DELETE' })
+      await apiFetch(`/api/admin/employees/${id}`, { method: 'DELETE' })
       showToast('Employee removed', 'success')
       setDeleteId(null)
       setDeleteEmployeeName('')

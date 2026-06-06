@@ -199,7 +199,7 @@ function ViewReportDrawer({
   async function handleMarkReviewed() {
     setUpdatingStatus(true)
     try {
-      await apiFetch(`/api/reports/reviewed/${report.id}`, { method: 'PUT' })
+      await apiFetch(`/api/admin/reports/reviewed/${report.id}`, { method: 'PUT' })
       setCurrentStatus('Reviewed')
       onStatusChange(report.id, 'Reviewed')
       showToast('Report marked as Reviewed', 'success')
@@ -213,7 +213,7 @@ function ViewReportDrawer({
   async function handleMarkPending() {
     setUpdatingStatus(true)
     try {
-      await apiFetch(`/api/reports/pending/${report.id}`, { method: 'PUT' })
+      await apiFetch(`/api/admin/reports/pending/${report.id}`, { method: 'PUT' })
       setCurrentStatus('Pending')
       onStatusChange(report.id, 'Pending')
       showToast('Report marked as Pending', 'success')

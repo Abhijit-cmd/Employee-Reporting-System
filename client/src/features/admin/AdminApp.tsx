@@ -23,10 +23,7 @@ function AdminPageContent({
     case 'employees':
       return <EmployeesPage onNavigate={onNavigate} initialSearch={employeeSearch} />
     case 'reports':
-    case 'export-reports':
       return <ReportsPage onNavigate={onNavigate} initialTab="reports" />
-    case 'pending-reports':
-      return <ReportsPage onNavigate={onNavigate} initialTab="not-submitted" />
     case 'targets':
       return <TargetsPage />
     case 'announcements':

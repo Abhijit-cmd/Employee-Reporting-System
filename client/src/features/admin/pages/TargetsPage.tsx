@@ -42,7 +42,7 @@ export default function TargetsPage() {
     try {
       const [targetsData, empData] = await Promise.all([
         apiFetch<Target[]>('/api/admin/targets'),
-        apiFetch<ApiEmployee[]>('/api/auth/employees'),
+        apiFetch<ApiEmployee[]>('/api/admin/employees'),
       ])
       if (!mountedRef.current) return
       setTargets(Array.isArray(targetsData) ? targetsData : [])

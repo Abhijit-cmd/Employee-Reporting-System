@@ -4,7 +4,6 @@ import {
   IconFileText,
   IconMegaphone,
   IconBarChart,
-  IconClock,
   IconSettings,
   IconHelpCircle,
 } from '../../shared/icons'
@@ -14,7 +13,6 @@ const navItems = [
   { id: 'dashboard',       label: 'Dashboard',       section: 'MANAGEMENT' },
   { id: 'employees',       label: 'Employees',        section: 'MANAGEMENT' },
   { id: 'reports',         label: 'Reports',          section: 'MANAGEMENT' },
-  { id: 'pending-reports', label: 'Pending Reports',  section: 'MANAGEMENT' },
   { id: 'targets',         label: 'Targets',          section: 'MANAGEMENT' },
   { id: 'announcements',   label: 'Announcements',    section: 'MANAGEMENT' },
   { id: 'analytics',       label: 'Analytics',        section: 'ANALYTICS' },
@@ -29,8 +27,6 @@ function NavIcon({ id }: { id: string }) {
       return <IconUsers />
     case 'reports':
       return <IconFileText />
-    case 'pending-reports':
-      return <IconClock />
     case 'announcements':
       return <IconMegaphone />
     case 'analytics':

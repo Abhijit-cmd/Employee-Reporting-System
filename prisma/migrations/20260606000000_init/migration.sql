@@ -36,13 +36,10 @@ CREATE TABLE `user` (
     `status`              ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
     `created_at`          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at`          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `failedLoginAttempts` INTEGER NOT NULL DEFAULT 0,
-    `lockedUntil`         DATETIME(3) NULL,
 
     UNIQUE INDEX `user_employee_id_key`(`employee_id`),
     UNIQUE INDEX `user_email_key`(`email`),
     INDEX `user_role_id_idx`(`role_id`),
-    INDEX `user_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -100,7 +97,6 @@ CREATE TABLE `notifications` (
     `updated_at`        DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `notifications_user_id_idx`(`user_id`),
-    INDEX `notifications_is_read_idx`(`is_read`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

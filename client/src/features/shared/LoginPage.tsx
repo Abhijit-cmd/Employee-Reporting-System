@@ -77,59 +77,25 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const [role,       setRole]       = useState<'admin' | 'employee'>('admin')
-  const [email,      setEmail]      = useState('')
-  const [password,   setPassword]   = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPw,     setShowPw]     = useState(false)
-  const [showConfirmPw, setShowConfirmPw] = useState(false)
-  const [error,      setError]      = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [isRegister, setIsRegister] = useState(false)
-  const [name,       setName]       = useState('')
-  const [phone,      setPhone]      = useState('')
+  const [role,     setRole]     = useState<'admin' | 'employee'>('admin')
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw,   setShowPw]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
   function resetAuthState() {
     setError('')
     setLoading(false)
-  }
-  function resetForm() {
-    setName('')
-    setPhone('')
-    setEmail('')
-    setPassword('')
-    setConfirmPassword('')
-    setError('')
   }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     resetAuthState()
 
-    if (isRegister) {
-      if (password !== confirmPassword) {
-        setError('Passwords do not match')
-        return
-      }
-      if (name.trim().length === 0) {
-        setError('Please enter your full name')
-        return
-      }
-      const phoneRegex = /^\+?[1-9]\d{6,19}$/
-      if (!phoneRegex.test(phone.trim())) {
-        setError('Please enter a valid phone number (include country code if needed)')
-        return
-      }
-    }
-
     setLoading(true)
 
     try {
-      const url = isRegister
-        ? `${API_BASE_URL}/api/auth/register`
-        : `${API_BASE_URL}/api/auth/login`
-
-      const body = isRegister
-      ? { name, phone, email, password }
-      : { email, password, role: role === 'admin' ? 'Admin' : 'Employee' }
+      const url = `${API_BASE_URL}/api/auth/login`
+      const body = { email, password, role: role === 'admin' ? 'Admin' : 'Employee' }
 
       const response = await fetch(url, {
         method: 'POST',
@@ -143,13 +109,6 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data?.message || 'Request failed')
         setLoading(false)
-        return
-      }
-
-      if (isRegister) {
-        showToast('Registered successfully. Please log in.', 'success')
-        setIsRegister(false)
-resetForm()
         return
       }
 
@@ -227,15 +186,10 @@ resetForm()
 
         <div className="login-right">
           <div className="login-card">
-            <div className="login-card-title">
-              {isRegister ? 'Create Employee Account' : 'Login to Your Account'}
-            </div>
-            <div className="login-card-sub">
-              {isRegister ? 'Fill in your details to register as an employee' : 'Choose your role and sign in to continue'}
-            </div>
+            <div className="login-card-title">Login to Your Account</div>
+            <div className="login-card-sub">Choose your role and sign in to continue</div>
 
-            {!isRegister && (
-              <div className="login-roles">
+            <div className="login-roles">
                 <button
                   type="button"
                   className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
@@ -255,19 +209,15 @@ resetForm()
                   <div className="login-role-sub">Employee Access</div>
                 </button>
               </div>
-            )}
 
             <form onSubmit={handleSubmit} noValidate>
+              {/* Registration disabled — admin creates employee accounts
               {isRegister && (
                 <>
-                  
                   <div className="login-field">
                     <label className="login-label">Full Name</label>
                     <div className="login-input-wrap">
-                      <input className="login-input" type="text" placeholder="Enter full name" value={name} onChange={e => {
-  setName(e.target.value)
-  setError('')
-}} />
+                      <input className="login-input" type="text" placeholder="Enter full name" value={name} onChange={e => { setName(e.target.value); setError('') }} />
                     </div>
                   </div>
                   <div className="login-field">
@@ -278,6 +228,7 @@ resetForm()
                   </div>
                 </>
               )}
+              */}
 
               <div className="login-field">
                 <label className="login-label">Email Address</label>
@@ -326,78 +277,52 @@ resetForm()
                 </div>
               </div>
 
+              {/* Registration disabled — confirm password field removed
               {isRegister && (
                 <div className="login-field">
                   <label className="login-label">Confirm Password</label>
                   <div className="login-input-wrap">
                     <span className="login-input-icon"><IcoLock /></span>
-                    <input
-                      className="login-input"
-                      type={showConfirmPw ? 'text' : 'password'}
-                      placeholder="Confirm your password"
-                      value={confirmPassword}
-                      onChange={e => {
-                        setConfirmPassword(e.target.value)
-                        setError('')
-                      }}
-                      required
-                      autoComplete="new-password"
-                      style={{ paddingRight: 40 }}
-                    />
-                    <button
-                      type="button"
-                      className="login-pw-toggle"
-                      onClick={() => setShowConfirmPw(s => !s)}
-                      aria-label={showConfirmPw ? 'Hide password' : 'Show password'}
-                    >
-                       <IcoEye show={showConfirmPw} />
-    </button>
-  </div>
-
-  {/* ✅ FIX: inline validation message goes HERE */}
-  {confirmPassword.length > 0 && password !== confirmPassword && (
-    <div className="login-error">
-      Passwords do not match
-    </div>
-  )}
-</div>
+                    <input className="login-input" type={showConfirmPw ? 'text' : 'password'} placeholder="Confirm your password"
+                      value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setError('') }}
+                      required autoComplete="new-password" style={{ paddingRight: 40 }} />
+                    <button type="button" className="login-pw-toggle" onClick={() => setShowConfirmPw(s => !s)}
+                      aria-label={showConfirmPw ? 'Hide password' : 'Show password'}>
+                      <IcoEye show={showConfirmPw} />
+                    </button>
+                  </div>
+                  {confirmPassword.length > 0 && password !== confirmPassword && (
+                    <div className="login-error">Passwords do not match</div>
+                  )}
+                </div>
               )}
+              */}
 
               {error && <div className="login-error">{error}</div>}
 
               <button className="login-submit" type="submit" disabled={loading}>
                 <IcoSignIn />
-                {loading
-                  ? isRegister ? 'Registering...' : 'Signing in...'
-                  : isRegister ? 'Register' : 'Sign In'}
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
+            {/* Registration disabled — footer toggle removed
             <div className="login-footer">
               {isRegister ? (
                 <>
                   Already have an account?
-                  <button type="button" className="login-register-link" onClick={() => {
- setIsRegister(false)
- resetAuthState()
-}}>
-                    Login
-                  </button>
+                  <button type="button" className="login-register-link" onClick={() => { setIsRegister(false); resetAuthState() }}>Login</button>
                 </>
               ) : (
                 role === 'employee' && (
                   <>
                     Don&apos;t have an account?
-                    <button type="button" className="login-register-link" onClick={() => {
-  setIsRegister(true)
-  resetAuthState()
-}}>
-                      Register
-                    </button>
+                    <button type="button" className="login-register-link" onClick={() => { setIsRegister(true); resetAuthState() }}>Register</button>
                   </>
                 )
               )}
             </div>
+            */}
           </div>
         </div>
       </div>

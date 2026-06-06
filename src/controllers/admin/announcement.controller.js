@@ -1,4 +1,4 @@
-const prisma = require("../prisma/prismaClient");
+const prisma = require("../../prisma/prismaClient");
 
 exports.getAnnouncements = async (req, res) => {
   try {
@@ -17,7 +17,7 @@ exports.createAnnouncement = async (req, res) => {
   try {
     const { title, body } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
-    if (!body?.trim())  return res.status(400).json({ message: "Body is required" });
+    if (!body?.trim()) return res.status(400).json({ message: "Body is required" });
 
     const announcement = await prisma.announcement.create({
       data: { title: title.trim(), body: body.trim(), createdBy: req.user.id },

@@ -145,7 +145,6 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   },
   employees: { title: 'Employees', sub: 'Dashboard / Employees' },
   reports: { title: 'Reports', sub: 'Dashboard / Reports' },
-  'pending-reports': { title: 'Pending Reports', sub: 'Dashboard / Pending Reports' },
   settings: { title: 'Settings', sub: 'Dashboard / Settings' },
   analytics: { title: 'Analytics', sub: 'Reports · Employees · Targets overview' },
   announcements: { title: 'Announcements', sub: 'Manage company-wide announcements' },

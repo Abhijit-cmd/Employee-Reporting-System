@@ -1,6 +1,5 @@
 
-const prisma = require("./src/prisma/prismaClient");
-const bcrypt = require("bcrypt");
+const prisma = require("../src/prisma/prismaClient");
 
 async function test() {
   try {

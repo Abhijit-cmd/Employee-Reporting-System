@@ -22,5 +22,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "routes", "hooks"]
+  "include": ["src"]
 }

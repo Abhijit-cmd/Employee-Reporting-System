@@ -1,5 +1,5 @@
 
-const prisma = require("./src/prisma/prismaClient");
+const prisma = require("../src/prisma/prismaClient");
 const bcrypt = require("bcrypt");
 
 async function updatePassword() {

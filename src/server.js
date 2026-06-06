@@ -17,7 +17,6 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -71,29 +70,13 @@ app.use(
 
 app.use(express.json({ limit: "10kb" }));
 
-// Rate limiter for auth routes only
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 20 : 200,
-  message: { message: "Too many attempts. Try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 app.get("/", (_req, res) => {
   res.send("Backend Connected Successfully");
 });
 
 // ROUTES
-const authRoutes = require("./routes/auth.routes");
-const reportRoutes = require("./routes/report.routes");
-const adminRoutes = require("./routes/admin.routes");
-const notificationRoutes = require("./routes/notification.routes");
-
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/reports", reportRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/notifications", notificationRoutes);
+const routes = require("./routes");
+app.use("/api", routes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
