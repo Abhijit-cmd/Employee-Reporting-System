@@ -90,7 +90,7 @@ export default function AchievementsPage({ onNavigate }: Props) {
 
       {error && <p style={{ padding: 16, color: '#ef4444' }}>{error}</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="achievements-grid">
         {/* Monthly tracker — current year */}
         <div className="card">
           <div className="card-header">

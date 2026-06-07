@@ -3,6 +3,7 @@ import {
 
   IconBell,
   IconChevronDown,
+  IconMenu,
 } from '../../shared/icons'
 import { getStoredUser } from '../../../lib/auth'
 import { initials } from '../../../lib/utils'
@@ -12,6 +13,7 @@ interface Props {
   onNavigate: (page: string) => void
   searchQuery: string
   onSearchChange: (q: string) => void
+  onMenuClick?: () => void
 }
 
 const MONTHS_SHORT = [
@@ -156,6 +158,7 @@ export default function AdminNavbar({
   onNavigate,
   searchQuery,
   onSearchChange,
+  onMenuClick,
 }: Props) {
   const user = getStoredUser()
   const meta = PAGE_TITLES[page] ?? PAGE_TITLES.dashboard
@@ -163,6 +166,9 @@ export default function AdminNavbar({
 
   return (
     <header className="navbar">
+      <button className="menu-btn" type="button" aria-label="Open menu" onClick={onMenuClick}>
+        <IconMenu />
+      </button>
       <div className="navbar-title">
         <h1>{meta.title}</h1>
         <p>

@@ -67,8 +67,8 @@ function UpdateModal({ target, onClose, onSaved }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 28, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 28, width: '100%', maxWidth: 380, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Update Progress</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{target.targetTitle}</div>
 

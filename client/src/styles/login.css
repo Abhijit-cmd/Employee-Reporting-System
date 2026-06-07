@@ -416,15 +416,75 @@
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 700px) {
+  .login-page {
+    padding: 12px;
+  }
+
   .login-container {
     flex-direction: column;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .login-left,
+  .login-right {
+    flex: none;
   }
 
   .login-left {
-    padding: 28px 24px;
+    padding: 18px 22px 14px;
+    gap: 8px;
+  }
+
+  .login-logo-img {
+    width: 84px;
+  }
+
+  .login-welcome {
+    font-size: 19px;
+    margin-top: 2px;
+  }
+
+  .login-welcome-sub {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .login-benefits {
+    display: none;
   }
 
   .login-right {
-    padding: 28px 24px;
+    padding: 18px 22px 24px;
+  }
+
+  .login-card {
+    gap: 12px;
+  }
+
+  .login-card-title {
+    font-size: 18px;
+  }
+
+  .login-card-sub {
+    font-size: 12px;
+    margin-top: -6px;
+  }
+
+  .login-roles {
+    gap: 8px;
+  }
+
+  .login-role-btn {
+    padding: 10px 8px;
+  }
+
+  .login-field {
+    gap: 4px;
+  }
+
+  .login-submit {
+    margin-top: 6px;
+    padding: 10px;
   }
 }

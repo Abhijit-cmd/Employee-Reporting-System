@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconBell, IconChevronDown, IconPlus } from '../../shared/icons'
+import { IconBell, IconChevronDown, IconPlus, IconMenu } from '../../shared/icons'
 import { getStoredUser } from '../../../lib/auth'
 import { apiFetch } from '../../../lib/api'
 
 interface Props {
   page: string
   onNavigate: (page: string) => void
+  onMenuClick?: () => void
 }
 
 const pageTitles: Record<string, { title: string; sub: string }> = {
@@ -22,7 +23,7 @@ const pageTitles: Record<string, { title: string; sub: string }> = {
   },
 }
 
-export default function EmployeeNavbar({ page, onNavigate }: Props) {
+export default function EmployeeNavbar({ page, onNavigate, onMenuClick }: Props) {
   const user = getStoredUser()
   const meta = pageTitles[page] ?? pageTitles.home
   const [unreadCount, setUnreadCount] = useState(0)
@@ -41,6 +42,9 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
 
   return (
     <header className="navbar">
+      <button className="menu-btn" type="button" aria-label="Open menu" onClick={onMenuClick}>
+        <IconMenu />
+      </button>
       <div className="navbar-title">
         <h1>{meta.title}</h1>
         <p>
@@ -56,7 +60,7 @@ export default function EmployeeNavbar({ page, onNavigate }: Props) {
         onClick={() => onNavigate('create-report')}
       >
         <IconPlus />
-        Create New Report
+        <span>Create New Report</span>
       </button>
 
       <div className="navbar-actions">

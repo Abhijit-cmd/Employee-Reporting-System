@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconHelpCircle,
   IconTarget,
+  IconX,
 } from '../../shared/icons'
 import { apiFetch } from '../../../lib/api'
 import { APP_VERSION } from '../../../config'
@@ -44,9 +45,11 @@ function NavIcon({ id }: { id: string }) {
 interface Props {
   active: string
   onNav: (id: string) => void
+  open?: boolean
+  onClose?: () => void
 }
 
-export default function EmployeeSidebar({ active, onNav }: Props) {
+export default function EmployeeSidebar({ active, onNav, open = false, onClose }: Props) {
   const [pendingCount, setPendingCount] = useState<number | null>(null)
   const [pendingLoading, setPendingLoading] = useState(true)
   const [pendingError, setPendingError] = useState('')
@@ -96,9 +99,12 @@ export default function EmployeeSidebar({ active, onNav }: Props) {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' mobile-open' : ''}`}>
       <div className="sidebar-logo">
         <img src="/logo.png" alt="Logo" />
+        <button className="sidebar-close-btn" type="button" aria-label="Close menu" onClick={onClose}>
+          <IconX />
+        </button>
       </div>
       <nav className="sidebar-nav" style={{ paddingTop: 8 }}>
         {navItems.map((item) => (

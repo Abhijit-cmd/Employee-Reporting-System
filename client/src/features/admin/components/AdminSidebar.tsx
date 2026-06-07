@@ -6,6 +6,7 @@ import {
   IconBarChart,
   IconSettings,
   IconHelpCircle,
+  IconX,
 } from '../../shared/icons'
 import { APP_VERSION } from '../../../config'
 
@@ -41,15 +42,20 @@ function NavIcon({ id }: { id: string }) {
 interface Props {
   active: string
   onNav: (id: string) => void
+  open?: boolean
+  onClose?: () => void
 }
 
-export default function AdminSidebar({ active, onNav }: Props) {
+export default function AdminSidebar({ active, onNav, open = false, onClose }: Props) {
   const sections = ['MANAGEMENT', 'ANALYTICS', 'SYSTEM']
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' mobile-open' : ''}`}>
       <div className="sidebar-logo">
         <img src="/logo.png" alt="Logo" />
+        <button className="sidebar-close-btn" type="button" aria-label="Close menu" onClick={onClose}>
+          <IconX />
+        </button>
       </div>
       <nav className="sidebar-nav">
         {sections.map((section) => {

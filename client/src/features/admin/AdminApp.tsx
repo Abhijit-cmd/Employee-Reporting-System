@@ -41,11 +41,13 @@ export default function AdminApp() {
   const location = useLocation()
   const navigate = useNavigate()
   const [employeeSearch, setEmployeeSearch] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const adminPage = location.pathname.replace(/^\/admin\/?/, '').split('/')[0] || 'dashboard'
 
   function handleNavigate(page: string) {
     navigate(`/admin/${page}`, { replace: true })
+    setSidebarOpen(false)
   }
 
   function handleSearch(q: string) {
@@ -55,13 +57,15 @@ export default function AdminApp() {
 
   return (
     <div className="layout">
-      <AdminSidebar active={adminPage} onNav={handleNavigate} />
+      <AdminSidebar active={adminPage} onNav={handleNavigate} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className={`sidebar-overlay${sidebarOpen ? ' show' : ''}`} onClick={() => setSidebarOpen(false)} />
       <div className="main-wrapper">
         <AdminNavbar
           page={adminPage}
           onNavigate={handleNavigate}
           searchQuery={employeeSearch}
           onSearchChange={handleSearch}
+          onMenuClick={() => setSidebarOpen((o) => !o)}
         />
         <AdminPageContent
           page={adminPage}
