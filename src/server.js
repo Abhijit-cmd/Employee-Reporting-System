@@ -74,10 +74,6 @@ app.use(
 
 app.use(express.json({ limit: "10kb" }));
 
-app.get("/", (_req, res) => {
-  res.send("Backend Connected Successfully");
-});
-
 // Health check for the ALB target group
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
