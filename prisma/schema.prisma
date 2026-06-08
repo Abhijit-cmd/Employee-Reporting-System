@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int    @id @default(autoincrement())
+
+   employeeId String? @unique @map("employee_id")
+ 
+  name String
+
+  email String @unique
+
+  password String
+
+  roleId Int @map("role_id")
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  phone String
+
+  status Status @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  reports       Report[]
+  notifications Notification[]
+  targets       Target[]
+  loginLogs     LoginLog[]
+  refreshTokens RefreshToken[]
+  announcements Announcement[]
+
+  @@index([roleId])
+  @@map("user")
+}
+
+enum Status {
+  active
+  inactive
+}
+
+model Report {
+  id Int @id @default(autoincrement())
+
+  userId Int @map("user_id")
+
+  mmyyyy String
+
+  businessOwner String
+
+  preparedBy String
+
+  reviewedBy String
+
+  customersRegistered Int @default(0)
+
+  suppliersRegistered Int @default(0)
+
+  newBrandProducts Int @default(0)
+
+  successStories Int @default(0)
+
+  websiteVisitors Int @default(0)
+
+  challenges          String @db.Text
+  salesBooking        String @db.Text
+  targetVsAchievement String @db.Text
+  accomplishments     String @db.Text
+
+  reportStatusId Int @map("report_status_id")
+
+  reportStatus ReportStatus @relation(fields: [reportStatusId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, mmyyyy])
+  @@index([userId])
+  @@index([reportStatusId])
+  @@index([mmyyyy])
+  @@map("reports")
+}
+
+model Role {
+  id Int @id @default(autoincrement())
+
+  roleName String @unique @map("role_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model ReportStatus {
+  id Int @id @default(autoincrement())
+
+  statusName String @unique @map("status_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  reports   Report[]
+
+  @@map("report_status")
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+
+  userId Int @map("user_id")
+
+  title String
+
+  message String
+
+  notificationType String @map("notification_type")
+
+  isRead Boolean @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model Target {
+  id Int @id @default(autoincrement())
+
+  userId Int @map("employee_id")
+
+  targetTitle String @map("target_title")
+
+  description String?
+
+  targetValue Float @map("target_value")
+
+  achievedValue Float @default(0) @map("achieved_value")
+
+  targetMonth String @map("target_month")
+
+  targetYear Int @map("target_year")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  employee User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+ @@index([userId])
+  @@map("targets")
+}
+
+model LoginLog {
+  id Int @id @default(autoincrement())
+
+  userId Int @map("user_id")
+
+  loginTime DateTime @default(now()) @map("login_time")
+
+  logoutTime DateTime? @map("logout_time")
+
+  ipAddress String? @map("ip_address")
+
+  deviceInfo String? @map("device_info")
+
+  createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("login_logs")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String   @db.Text
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  author User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("announcements")
+}
+
+model RefreshToken {
+  id     Int    @id @default(autoincrement())
+  token  String @unique @db.VarChar(512)
+  userId Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

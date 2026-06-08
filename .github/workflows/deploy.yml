@@ -1,0 +1,43 @@
+name: Deploy ERS Test Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create deployment bundle
+        run: |
+          zip -r app.zip . \
+          -x "*.git*" \
+          -x ".github/*" \
+          -x "node_modules/*" \
+          -x "client/node_modules/*"
+
+      - name: Upload bundle to S3
+        run: |
+          aws s3 cp app.zip \
+          s3://constromat-codedeploy-bucket/ers-test/app.zip
+
+      - name: Trigger CodeDeploy deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name ${{ vars.CODEDEPLOY_APP_NAME }} \
+            --deployment-group-name ${{ vars.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }} \
+            --s3-location \
+            bucket=constromat-codedeploy-bucket,key=ers-test/app.zip,bundleType=zip

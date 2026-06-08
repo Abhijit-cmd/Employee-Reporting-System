@@ -1,0 +1,4 @@
+node_modules
+Client/.vite/
+.env
+.env.*

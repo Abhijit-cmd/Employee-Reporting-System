@@ -1,0 +1,26 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /var/www/ers-test.constromat.com/public_html
+    file_exists_behavior: OVERWRITE
+
+hooks:
+  BeforeInstall:
+    - location: deploy_scripts/before_install.sh
+      runas: developer
+      timeout: 300
+
+  AfterInstall:
+    - location: deploy_scripts/after_install.sh
+      timeout: 900
+
+  ApplicationStart:
+    - location: deploy_scripts/start.sh
+      runas: developer
+      timeout: 300
+
+  ValidateService:
+    - location: deploy_scripts/validate.sh
+      timeout: 60

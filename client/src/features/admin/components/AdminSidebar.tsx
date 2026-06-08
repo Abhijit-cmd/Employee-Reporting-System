@@ -1,0 +1,94 @@
+import {
+  IconDashboard,
+  IconUsers,
+  IconFileText,
+  IconMegaphone,
+  IconBarChart,
+  IconSettings,
+  IconHelpCircle,
+  IconX,
+} from '../../shared/icons'
+import { APP_VERSION } from '../../../config'
+
+const navItems = [
+  { id: 'dashboard',       label: 'Dashboard',       section: 'MANAGEMENT' },
+  { id: 'employees',       label: 'Employees',        section: 'MANAGEMENT' },
+  { id: 'reports',         label: 'Reports',          section: 'MANAGEMENT' },
+  { id: 'targets',         label: 'Targets',          section: 'MANAGEMENT' },
+  { id: 'announcements',   label: 'Announcements',    section: 'MANAGEMENT' },
+  { id: 'analytics',       label: 'Analytics',        section: 'ANALYTICS' },
+  { id: 'settings',        label: 'Profile',          section: 'SYSTEM' },
+]
+
+function NavIcon({ id }: { id: string }) {
+  switch (id) {
+    case 'dashboard':
+      return <IconDashboard />
+    case 'employees':
+      return <IconUsers />
+    case 'reports':
+      return <IconFileText />
+    case 'announcements':
+      return <IconMegaphone />
+    case 'analytics':
+      return <IconBarChart />
+    case 'settings':
+      return <IconSettings />
+    default:
+      return <IconDashboard />
+  }
+}
+
+interface Props {
+  active: string
+  onNav: (id: string) => void
+  open?: boolean
+  onClose?: () => void
+}
+
+export default function AdminSidebar({ active, onNav, open = false, onClose }: Props) {
+  const sections = ['MANAGEMENT', 'ANALYTICS', 'SYSTEM']
+
+  return (
+    <aside className={`sidebar${open ? ' mobile-open' : ''}`}>
+      <div className="sidebar-logo">
+        <img src="/logo.png" alt="Logo" />
+        <button className="sidebar-close-btn" type="button" aria-label="Close menu" onClick={onClose}>
+          <IconX />
+        </button>
+      </div>
+      <nav className="sidebar-nav">
+        {sections.map((section) => {
+          const items = navItems.filter((n) => n.section === section)
+          if (!items.length) return null
+          return (
+            <div key={section}>
+              <div className="nav-section-label">{section}</div>
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  className={`nav-item${active === item.id ? ' active' : ''}`}
+                  onClick={() => onNav(item.id)}
+                  type="button"
+                >
+                  <NavIcon id={item.id} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )
+        })}
+      </nav>
+      <div className="sidebar-footer">
+        <div className="sidebar-help">
+          <div className="sidebar-help-icon">
+            <IconHelpCircle />
+          </div>
+          <div className="sidebar-help-text">
+            <strong>Version {APP_VERSION}</strong>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
