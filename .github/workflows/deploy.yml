@@ -37,7 +37,6 @@ jobs:
       - name: Trigger CodeDeploy deployment
         run: |
           aws deploy create-deployment \
-            --application-name ${{ vars.CODEDEPLOY_APP_NAME }} \
-            --deployment-group-name ${{ vars.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }} \
-            --s3-location \
-            bucket=constromat-codedeploy-bucket,key=ers-test/app.zip,bundleType=zip
+            --application-name "${{ vars.CODEDEPLOY_APP_NAME }}" \
+            --deployment-group-name "${{ vars.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }}" \
+            --s3-location bucket=constromat-codedeploy-bucket,key=ers-test/app.zip,bundleType=zip
