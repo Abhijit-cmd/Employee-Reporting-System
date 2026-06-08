@@ -9,7 +9,7 @@ files:
 hooks:
   BeforeInstall:
     - location: deploy_scripts/before_install.sh
-      runas: developer
+      runas: root
       timeout: 300
 
   AfterInstall:
@@ -18,7 +18,7 @@ hooks:
 
   ApplicationStart:
     - location: deploy_scripts/start.sh
-      runas: developer
+      runas: root
       timeout: 300
 
   ValidateService:
