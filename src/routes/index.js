@@ -16,16 +16,17 @@ const employeeMiddleware = require("../middleware/employee.middleware");
 const loginLimiter = require("../middleware/loginLimiter.middleware");
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: 5 * 60 * 1000,
+  max: 30,
   message: { message: "Too many attempts. Try again later." },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const apiLimiter = rateLimit({
+  keyGenerator: (req) => req.user?.id ?? req.ip,
   windowMs: 60 * 1000,
-  max: 30,
+  max: 60,
   message: { message: "Too many requests. Please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
