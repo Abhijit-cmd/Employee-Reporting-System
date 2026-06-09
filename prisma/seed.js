@@ -33,7 +33,7 @@ async function main() {
   await prisma.user.createMany({
     data: [
       {
-        employeeId: "ADMIN001",
+        employeeId: "SUPER-ADMIN",
         name: "Admin",
         email: process.env.ADMIN_EMAIL,
         password: hashedPassword,

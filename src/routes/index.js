@@ -59,6 +59,8 @@ adminRouter.get("/employees", employeesController.getAllEmployees);
 adminRouter.post("/employees", employeesController.createEmployee);
 adminRouter.put("/employees/:id", employeesController.updateEmployee);
 adminRouter.delete("/employees/:id", employeesController.deleteEmployee);
+adminRouter.get("/admins", employeesController.getAdmins);
+adminRouter.post("/admins", employeesController.createAdmin);
 adminRouter.get("/targets", targetsController.getTargets);
 adminRouter.post("/targets", targetsController.createTarget);
 adminRouter.get("/analytics", dashboardController.getAnalytics);

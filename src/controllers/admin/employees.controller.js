@@ -144,6 +144,80 @@ exports.updateEmployee = async (req, res) => {
   }
 };
 
+exports.getAdmins = async (req, res) => {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: { roleName: "Admin" } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const safeAdmins = admins.map((admin) => ({
+      id: admin.id,
+      employeeId: admin.employeeId,
+      name: admin.name,
+      email: admin.email,
+      phone: admin.phone,
+      status: admin.status,
+      createdAt: admin.createdAt,
+    }));
+
+    res.status(200).json(safeAdmins);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch admins" });
+  }
+};
+
+exports.createAdmin = async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+
+    if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
+    if (!email?.trim()) return res.status(400).json({ message: "Email is required" });
+    if (!password) return res.status(400).json({ message: "Password is required" });
+
+    const nameRegex = /^[A-Za-z\s'-]{2,50}$/;
+    if (!nameRegex.test(name.trim())) return res.status(400).json({ message: "Name must contain only letters and spaces (2–50 characters)" });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) return res.status(400).json({ message: "Invalid email address" });
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+    if (!passwordRegex.test(password)) return res.status(400).json({ message: "Password must be 8–20 characters with uppercase, lowercase and a number" });
+
+    const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    if (existing) return res.status(409).json({ message: "An account with this email already exists" });
+
+    const adminRole = await prisma.role.findFirst({ where: { roleName: "Admin" } });
+    if (!adminRole) return res.status(500).json({ message: "Admin role not found" });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone?.trim() || "",
+          password: hashedPassword,
+          role: { connect: { id: adminRole.id } },
+        },
+      });
+      const adminCount = await tx.user.count({ where: { role: { roleName: "Admin" } } });
+      const employeeId = `ADMIN-${String(adminCount).padStart(3, "0")}`;
+      return tx.user.update({ where: { id: created.id }, data: { employeeId } });
+    });
+
+    res.status(201).json({
+      message: "Admin created successfully",
+      user: { id: user.id, employeeId: user.employeeId, name: user.name, email: user.email, phone: user.phone },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to create admin" });
+  }
+};
+
 exports.deleteEmployee = async (req, res) => {
   try {
     const id = Number(req.params.id);

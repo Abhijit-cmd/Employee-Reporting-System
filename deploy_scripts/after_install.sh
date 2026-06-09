@@ -2,7 +2,7 @@
 
 set -e
 
-APP_DIR="/var/www/ers-test.constromat.com/public_html"
+APP_DIR="/var/www/ers.constromat.com/public_html"
 
 cd $APP_DIR
 

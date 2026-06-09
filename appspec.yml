@@ -3,7 +3,7 @@ os: linux
 
 files:
   - source: /
-    destination: /var/www/ers-test.constromat.com/public_html
+    destination: /var/www/ers.constromat.com/public_html
     file_exists_behavior: OVERWRITE
 
 hooks:
