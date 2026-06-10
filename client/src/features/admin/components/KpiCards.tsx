@@ -111,11 +111,11 @@ export default function KpiCards({ onNavigate }: Props) {
       <div className="kpi-row">
         {kpis.map((k) => (
           <div
-            className={`kpi-card${k.onClick ? ' kpi-card-clickable' : ''}`}
+            className="kpi-card kpi-card-clickable"
             key={k.label}
             onClick={k.onClick}
-            role={k.onClick ? 'button' : undefined}
-            tabIndex={k.onClick ? 0 : undefined}
+            role="button"
+            tabIndex={0}
             onKeyDown={(e) => handleKeyDown(e, k.onClick)}
           >
             <div

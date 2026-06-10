@@ -4,7 +4,7 @@ import { safeSetItem, safeGetItem, safeRemoveItem } from './utils'
 
 // Keys must match what LoginPage stores
 const USER_KEY = 'user'
-let refreshInterval: NodeJS.Timeout | null = null
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 // Function to refresh tokens
 async function refreshTokens(): Promise<boolean> {

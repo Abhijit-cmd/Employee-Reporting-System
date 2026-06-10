@@ -16,12 +16,16 @@ if (missingVars.length > 0) {
   );
   process.exit(1);
 }
+const path = require("path");
 const helmet = require("helmet");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 const app = express();
+
+// Trust the Nginx proxy for secure IP redirect
+app.set("trust proxy", 1);
 
 app.use(cookieParser());
 
@@ -70,21 +74,36 @@ app.use(
 
 app.use(express.json({ limit: "10kb" }));
 
-app.get("/", (_req, res) => {
-  res.send("Backend Connected Successfully");
+// Health check for the ALB target group
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 // ROUTES
 const routes = require("./routes");
 app.use("/api", routes);
 
+// Serve React build in production
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.join(__dirname, "..", "client", "dist");
+  app.use(express.static(clientDist));
+  app.get("/*splat", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
- console.error(err);
+  console.error(err);
 
-  res.status(err.status || 500).json({
-    message: err.message || "Internal Server Error",
-  });
+  const status = err.status || 500;
+  // Mask internal error details in production; 4xx messages are deliberate and safe to surface
+  const message =
+    status >= 500 && process.env.NODE_ENV === "production"
+      ? "Internal Server Error"
+      : err.message || "Internal Server Error";
+
+  res.status(status).json({ message });
 });
 
 const PORT = process.env.PORT || 5000;
@@ -117,3 +136,33 @@ const server = app.listen(PORT, async () => {
 server.requestTimeout = 30000;
 server.headersTimeout = 35000;
 server.keepAliveTimeout = 5000;
+
+// Graceful shutdown — let in-flight requests finish and close DB connections cleanly
+function gracefulShutdown(signal) {
+  console.log(`${signal} received: shutting down gracefully`);
+
+  server.close(async (err) => {
+    if (err) {
+      console.error("Error while closing server:", err);
+      process.exit(1);
+    }
+
+    try {
+      await prisma.$disconnect();
+      console.log("Database connections closed. Exiting.");
+      process.exit(0);
+    } catch (e) {
+      console.error("Error during shutdown:", e);
+      process.exit(1);
+    }
+  });
+
+  // Safety net: force-exit if shutdown hangs (e.g. a stuck request)
+  setTimeout(() => {
+    console.error("Graceful shutdown timed out. Forcing exit.");
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

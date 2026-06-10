@@ -16,9 +16,18 @@ const employeeMiddleware = require("../middleware/employee.middleware");
 const loginLimiter = require("../middleware/loginLimiter.middleware");
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: 5 * 60 * 1000,
+  max: 30,
   message: { message: "Too many attempts. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  keyGenerator: (req) => req.user?.id ?? req.ip,
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { message: "Too many requests. Please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -50,6 +59,8 @@ adminRouter.get("/employees", employeesController.getAllEmployees);
 adminRouter.post("/employees", employeesController.createEmployee);
 adminRouter.put("/employees/:id", employeesController.updateEmployee);
 adminRouter.delete("/employees/:id", employeesController.deleteEmployee);
+adminRouter.get("/admins", employeesController.getAdmins);
+adminRouter.post("/admins", employeesController.createAdmin);
 adminRouter.get("/targets", targetsController.getTargets);
 adminRouter.post("/targets", targetsController.createTarget);
 adminRouter.get("/analytics", dashboardController.getAnalytics);
@@ -83,6 +94,7 @@ notificationsRouter.patch("/read-all", notifController.markAllRead);
 
 // ── Mount ─────────────────────────────────────────────────────────────────────
 const router = express.Router();
+router.use(apiLimiter);
 router.use("/auth", authRouter);
 router.use("/reports", reportsRouter);
 router.use("/admin/announcements", announcementsRouter);
