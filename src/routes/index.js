@@ -1,5 +1,5 @@
 const express = require("express");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const authController = require("../controllers/auth.controller");
 const employeesController = require("../controllers/admin/employees.controller");
@@ -12,6 +12,7 @@ const notifController = require("../controllers/employee/notification.controller
 
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
+const superAdminMiddleware = require("../middleware/superAdmin.middleware");
 const employeeMiddleware = require("../middleware/employee.middleware");
 const loginLimiter = require("../middleware/loginLimiter.middleware");
 
@@ -24,7 +25,7 @@ const authLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-  keyGenerator: (req) => req.user?.id ?? req.ip,
+  keyGenerator: (req) => (req.user?.id ? `user:${req.user.id}` : ipKeyGenerator(req.ip)),
   windowMs: 60 * 1000,
   max: 60,
   message: { message: "Too many requests. Please try again later." },
@@ -44,23 +45,25 @@ authRouter.get("/profile", authMiddleware, authController.getProfile);
 
 // ── REPORTS (employee only) ───────────────────────────────────────────────────
 const reportsRouter = express.Router();
-reportsRouter.use(authMiddleware, employeeMiddleware);
+reportsRouter.use(authMiddleware, employeeMiddleware, apiLimiter);
 
 reportsRouter.post("/create", employeeReportController.createReport);
 reportsRouter.get("/my-reports", employeeReportController.getMyReports);
 reportsRouter.get("/my-targets", employeeReportController.getMyTargets);
 reportsRouter.patch("/my-targets/:id/achieve", employeeReportController.updateTargetAchieved);
+reportsRouter.put("/change-password", employeeReportController.changePassword);
 
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 const adminRouter = express.Router();
-adminRouter.use(authMiddleware, adminMiddleware);
+adminRouter.use(authMiddleware, adminMiddleware, apiLimiter);
 
 adminRouter.get("/employees", employeesController.getAllEmployees);
 adminRouter.post("/employees", employeesController.createEmployee);
 adminRouter.put("/employees/:id", employeesController.updateEmployee);
 adminRouter.delete("/employees/:id", employeesController.deleteEmployee);
-adminRouter.get("/admins", employeesController.getAdmins);
-adminRouter.post("/admins", employeesController.createAdmin);
+adminRouter.get("/admins", superAdminMiddleware, employeesController.getAdmins);
+adminRouter.post("/admins", superAdminMiddleware, employeesController.createAdmin);
+adminRouter.delete("/admins/:id", superAdminMiddleware, employeesController.deleteAdmin);
 adminRouter.get("/targets", targetsController.getTargets);
 adminRouter.post("/targets", targetsController.createTarget);
 adminRouter.get("/analytics", dashboardController.getAnalytics);
@@ -79,7 +82,7 @@ adminRouter.get("/reports/:id/download", adminReportsController.downloadReport);
 
 // ── ANNOUNCEMENTS ─────────────────────────────────────────────────────────────
 const announcementsRouter = express.Router();
-announcementsRouter.use(authMiddleware);
+announcementsRouter.use(authMiddleware, apiLimiter);
 
 announcementsRouter.get("/", announcementController.getAnnouncements);
 announcementsRouter.post("/", adminMiddleware, announcementController.createAnnouncement);
@@ -87,14 +90,13 @@ announcementsRouter.delete("/:id", adminMiddleware, announcementController.delet
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 const notificationsRouter = express.Router();
-notificationsRouter.use(authMiddleware);
+notificationsRouter.use(authMiddleware, apiLimiter);
 
 notificationsRouter.get("/", notifController.getNotifications);
 notificationsRouter.patch("/read-all", notifController.markAllRead);
 
 // ── Mount ─────────────────────────────────────────────────────────────────────
 const router = express.Router();
-router.use(apiLimiter);
 router.use("/auth", authRouter);
 router.use("/reports", reportsRouter);
 router.use("/admin/announcements", announcementsRouter);

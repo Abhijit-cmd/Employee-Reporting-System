@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconHelpCircle,
   IconTarget,
+  IconCalendar,
   IconX,
 } from '../../shared/icons'
 import { apiFetch } from '../../../lib/api'
@@ -23,6 +24,7 @@ const navItems = [
   { id: 'achievements',   label: 'Achievements',      icon: 'award' },
   { id: 'create-report',  label: 'Create New Report', icon: 'plus' },
   { id: 'my-targets',     label: 'My Targets',        icon: 'target' },
+  { id: 'appraisal',      label: 'Yearly Report',     icon: 'calendar' },
   { id: 'notifications',  label: 'Notifications',     icon: 'bell',     badge: 'pending' as const },
   { id: 'announcements',  label: 'Announcements',     icon: 'announce', badge: 'announce' as const },
   { id: 'settings',       label: 'Profile',           icon: 'settings' },
@@ -36,6 +38,7 @@ function NavIcon({ id }: { id: string }) {
     case 'plus':     return <IconPlus />
     case 'bell':     return <IconBell />
     case 'target':   return <IconTarget />
+    case 'calendar': return <IconCalendar />
     case 'announce': return <IconMegaphone />
     case 'settings': return <IconSettings />
     default:         return <IconHome />

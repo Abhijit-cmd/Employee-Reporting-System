@@ -5,6 +5,7 @@ import { showToast } from '../../../lib/feedback'
 import { loadSettings, saveSettings } from '../../../lib/settingsStorage'
 import LogoutButton from '../../shared/LogoutButton'
 import { initials } from '../../../lib/utils'
+import { getStoredUser, isSuperAdmin } from '../../../lib/auth'
 import type { ApiEmployee } from '../../../types'
 
 interface Props { onBack: () => void }
@@ -80,8 +81,8 @@ function AddAdminModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
       showToast('Admin added successfully', 'success')
       onAdded()
       onClose()
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to add admin', 'error')
+    } catch {
+      // apiFetch already shows an error toast for failed requests
     } finally {
       setSubmitting(false)
     }
@@ -135,9 +136,13 @@ export default function AdminSettingsPage({ onBack }: Props) {
   const [announceNotif, setAnnounceNotif] = useState(true)
 
   // Admin management
+  const isSuper = isSuperAdmin(getStoredUser())
   const [admins, setAdmins] = useState<ApiEmployee[]>([])
   const [adminsLoading, setAdminsLoading] = useState(true)
   const [showAddAdminModal, setShowAddAdminModal] = useState(false)
+  const [deleteAdminId, setDeleteAdminId] = useState<number | null>(null)
+  const [deleteAdminName, setDeleteAdminName] = useState('')
+  const [deletingAdmin, setDeletingAdmin] = useState(false)
 
   const fetchAdmins = () => {
     setAdminsLoading(true)
@@ -147,7 +152,23 @@ export default function AdminSettingsPage({ onBack }: Props) {
       .finally(() => { if (mountedRef.current) setAdminsLoading(false) })
   }
 
-  useEffect(() => { fetchAdmins() }, [])
+  useEffect(() => { if (isSuper) fetchAdmins() }, [])
+
+  async function handleDeleteAdmin(id: number | null) {
+    if (!id) return
+    setDeletingAdmin(true)
+    try {
+      await apiFetch(`/api/admin/admins/${id}`, { method: 'DELETE' })
+      showToast('Admin removed', 'success')
+      setDeleteAdminId(null)
+      setDeleteAdminName('')
+      fetchAdmins()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete admin', 'error')
+    } finally {
+      setDeletingAdmin(false)
+    }
+  }
 
   const fetchProfile = async () => {
     setLoading(true)
@@ -283,43 +304,76 @@ export default function AdminSettingsPage({ onBack }: Props) {
       </div>
 
       {/* Admin Management */}
-      <div className="card st-card">
-        <div className="st-card-body">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>Admin Management</div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>Manage administrator accounts for this platform.</div>
+      {isSuper && (
+        <div className="card st-card">
+          <div className="st-card-body">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>Admin Management</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>Manage administrator accounts for this platform.</div>
+              </div>
+              <button className="cnr-btn-submit" type="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddAdminModal(true)}>
+                <IcoPlus /> Add Admin
+              </button>
             </div>
-            <button className="cnr-btn-submit" type="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddAdminModal(true)}>
-              <IcoPlus /> Add Admin
-            </button>
-          </div>
 
-          {adminsLoading ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading admins…</p>
-          ) : admins.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No admins found.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {admins.map(admin => (
-                <div key={admin.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-secondary, rgba(0,0,0,0.03))' }}>
-                  <div className="emp-avatar" style={{ flexShrink: 0 }}>{initials(admin.name)}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{admin.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{admin.email}</div>
+            {adminsLoading ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading admins…</p>
+            ) : admins.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No admins found.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {admins.map(admin => (
+                  <div key={admin.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-secondary, rgba(0,0,0,0.03))' }}>
+                    <div className="emp-avatar" style={{ flexShrink: 0 }}>{initials(admin.name)}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{admin.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{admin.email}</div>
+                    </div>
+                    {admin.employeeId && (
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, fontFamily: 'monospace' }}>{admin.employeeId}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteAdminId(admin.id); setDeleteAdminName(admin.name) }}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', padding: 4 }}
+                      aria-label={`Delete ${admin.name}`}
+                      title="Delete admin"
+                    >
+                      <IcoX />
+                    </button>
                   </div>
-                  {admin.employeeId && (
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, fontFamily: 'monospace' }}>{admin.employeeId}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {showAddAdminModal && (
         <AddAdminModal onClose={() => setShowAddAdminModal(false)} onAdded={fetchAdmins} />
+      )}
+
+      {deleteAdminId !== null && (
+        <div className="emp-modal-overlay" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }}>
+          <div className="emp-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="emp-modal-header">
+              <span className="emp-modal-title">Remove Admin</span>
+              <button type="button" className="emp-modal-close" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }}><IcoX /></button>
+            </div>
+            <div className="emp-modal-body">
+              <p style={{ margin: '0 0 20px', color: 'var(--text-primary)' }}>
+                Are you sure you want to remove <strong>{deleteAdminName}</strong>? This action cannot be undone.
+              </p>
+              <div className="emp-modal-footer">
+                <button type="button" className="cnr-btn-back" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }} disabled={deletingAdmin}>Cancel</button>
+                <button type="button" className="cnr-btn-submit" style={{ background: '#ef4444' }} onClick={() => handleDeleteAdmin(deleteAdminId)} disabled={deletingAdmin}>
+                  {deletingAdmin ? 'Removing…' : 'Remove'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Footer */}

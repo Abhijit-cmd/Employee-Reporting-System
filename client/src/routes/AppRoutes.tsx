@@ -4,6 +4,8 @@ import { getStoredUser, hasActiveSession, isAdmin, isEmployee } from '../lib/aut
 import LoginPage from '../features/shared/LoginPage'
 import AdminApp from '../features/admin/AdminApp'
 import EmployeeApp from '../features/employee/EmployeeApp'
+import PortalSelectPage from '../features/employee/PortalSelectPage'
+import AppraisalComingSoonPage from '../features/employee/AppraisalComingSoonPage'
 
 // ── GUARD ─────────────────────────────────────────────────────────────────────
 
@@ -14,9 +16,10 @@ interface GuardProps {
 
 function RoleProtectedRoute({ children, role }: GuardProps) {
   const user = getStoredUser()
+  const loginPath = role === 'Admin' ? '/superadmin/login' : '/login'
 
   if (!hasActiveSession() || !user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to={loginPath} replace />
   }
 
   if (role === 'Admin' && !isAdmin(user)) {
@@ -24,7 +27,7 @@ function RoleProtectedRoute({ children, role }: GuardProps) {
   }
 
   if (role === 'Employee' && !isEmployee(user)) {
-    return <Navigate to="/admin/dashboard" replace />
+    return <Navigate to="/superadmin/dashboard" replace />
   }
 
   return <>{children}</>
@@ -38,11 +41,12 @@ export default function AppRoutes() {
 
       {/* PUBLIC ── no auth required */}
       <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<LoginPage portal="employee" />} />
+      <Route path="/superadmin/login" element={<LoginPage portal="admin" />} />
 
-      {/* ADMIN ── requires Admin role */}
+      {/* ADMIN ── requires Admin or SuperAdmin role */}
       <Route
-        path="/admin/*"
+        path="/superadmin/*"
         element={
           <RoleProtectedRoute role="Admin">
             <AdminApp />
@@ -51,6 +55,22 @@ export default function AppRoutes() {
       />
 
       {/* EMPLOYEE ── requires Employee role */}
+      <Route
+        path="/employee/select"
+        element={
+          <RoleProtectedRoute role="Employee">
+            <PortalSelectPage />
+          </RoleProtectedRoute>
+        }
+      />
+      <Route
+        path="/employee/yearly-report"
+        element={
+          <RoleProtectedRoute role="Employee">
+            <AppraisalComingSoonPage />
+          </RoleProtectedRoute>
+        }
+      />
       <Route
         path="/employee/*"
         element={

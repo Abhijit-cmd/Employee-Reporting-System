@@ -11,6 +11,7 @@ async function main() {
   // SEED ROLES
   await prisma.role.createMany({
     data: [
+      { roleName: "SuperAdmin" },
       { roleName: "Admin" },
       { roleName: "Employee" },
     ],
@@ -19,17 +20,17 @@ async function main() {
 
   console.log("Roles seeded successfully");
 
-  const adminRole = await prisma.role.findFirst({
-    where: { roleName: "Admin" },
+  const superAdminRole = await prisma.role.findFirst({
+    where: { roleName: "SuperAdmin" },
   });
 
-  if (!adminRole) {
-    throw new Error("Admin role not found after seeding — check for DB errors");
+  if (!superAdminRole) {
+    throw new Error("SuperAdmin role not found after seeding — check for DB errors");
   }
 
   const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
 
-  // SEED ADMIN USER
+  // SEED SUPER ADMIN USER
   await prisma.user.createMany({
     data: [
       {
@@ -37,14 +38,20 @@ async function main() {
         name: "Admin",
         email: process.env.ADMIN_EMAIL,
         password: hashedPassword,
-        roleId: adminRole.id,
+        roleId: superAdminRole.id,
         phone: "+919876543210",
       },
     ],
     skipDuplicates: true,
   });
 
-  console.log("Admin seeded successfully");
+  // Upgrade an existing seeded admin from before the SuperAdmin role existed
+  await prisma.user.updateMany({
+    where: { email: process.env.ADMIN_EMAIL },
+    data: { roleId: superAdminRole.id },
+  });
+
+  console.log("Super admin seeded successfully");
 
   // SEED REPORT STATUSES
   await prisma.reportStatus.createMany({

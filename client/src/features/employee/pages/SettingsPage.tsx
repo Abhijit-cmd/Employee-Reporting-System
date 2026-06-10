@@ -9,6 +9,11 @@ interface Props { onBack: () => void }
 
 function IcoArrowLeft() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> }
 function IcoSave() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> }
+function IcoEye({ show }: { show: boolean }) { return (
+  show ?
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> :
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+) }
 
 export default function SettingsPage({ onBack }: Props) {
   const [fullName,    setFullName]    = useState('')
@@ -22,6 +27,15 @@ export default function SettingsPage({ onBack }: Props) {
 
   const [reportRemind,  setReportRemind]  = useState(true)
   const [announceNotif, setAnnounceNotif] = useState(true)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   const fetchProfile = async () => {
     setLoading(true)
@@ -71,6 +85,31 @@ export default function SettingsPage({ onBack }: Props) {
 
     return () => { cancelled = true }
   }, [])
+
+  async function handleChangePassword() {
+    setPasswordError('')
+    setChangePasswordLoading(true)
+    try {
+      await apiFetch('/api/reports/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmNewPassword
+        })
+      })
+      showToast('Password updated successfully.', 'success')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmNewPassword('')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update password'
+      setPasswordError(msg)
+      showToast(msg, 'error')
+    } finally {
+      setChangePasswordLoading(false)
+    }
+  }
 
   function handleSaveSettings() {
     saveSettings({ reportRemind, announceNotif })
@@ -148,6 +187,120 @@ export default function SettingsPage({ onBack }: Props) {
               <Toggle checked={n.val} onChange={n.set} />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Change Password Card */}
+      <div className="card st-card">
+        <div className="st-card-body">
+          <div className="st-section-title" style={{ marginBottom: '16px' }}>Security Settings</div>
+          <div className="st-section-sub" style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>Change Password</div>
+          
+          {passwordError && (
+            <div style={{ color: '#ef4444', marginBottom: '12px', fontSize: '0.875rem' }}>{passwordError}</div>
+          )}
+          
+          <div className="st-field" style={{ marginBottom: '12px' }}>
+            <label className="st-label">Current Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="st-input"
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px'
+                }}
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              >
+                <IcoEye show={showCurrentPassword} />
+              </button>
+            </div>
+          </div>
+
+          <div className="st-field" style={{ marginBottom: '12px' }}>
+            <label className="st-label">New Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="st-input"
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 8 characters)"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px'
+                }}
+                onClick={() => setShowNewPassword(!showNewPassword)}
+              >
+                <IcoEye show={showNewPassword} />
+              </button>
+            </div>
+          </div>
+
+          <div className="st-field" style={{ marginBottom: '16px' }}>
+            <label className="st-label">Confirm New Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="st-input"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Confirm new password"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px'
+                }}
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <IcoEye show={showConfirmPassword} />
+              </button>
+            </div>
+          </div>
+
+          <button
+            className="cnr-btn-submit"
+            type="button"
+            onClick={handleChangePassword}
+            disabled={changePasswordLoading}
+          >
+            {changePasswordLoading ? 'Updating...' : 'Update Password'}
+          </button>
         </div>
       </div>
 

@@ -218,6 +218,27 @@ exports.createAdmin = async (req, res) => {
   }
 };
 
+exports.deleteAdmin = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid admin ID" });
+
+    const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
+    if (!user) return res.status(404).json({ message: "Admin not found" });
+
+    if (id === req.user.id) return res.status(403).json({ message: "Cannot delete your own account" });
+
+    if (user.role?.roleName !== "Admin") return res.status(403).json({ message: "Cannot delete this account" });
+
+    await prisma.user.delete({ where: { id } });
+
+    res.status(200).json({ message: "Admin deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to delete admin" });
+  }
+};
+
 exports.deleteEmployee = async (req, res) => {
   try {
     const id = Number(req.params.id);

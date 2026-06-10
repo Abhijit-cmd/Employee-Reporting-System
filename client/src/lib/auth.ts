@@ -80,6 +80,7 @@ export function clearSession(): void {
 
 export async function logout(): Promise<void> {
   stopProactiveRefresh()
+  const wasAdmin = isAdmin(getStoredUser())
   try {
     await apiFetch('/api/auth/logout', {
       method: 'POST',
@@ -89,16 +90,25 @@ export async function logout(): Promise<void> {
     // Ignore errors
   } finally {
     clearSession()
-    window.location.href = '/login'
+    window.location.href = wasAdmin ? '/superadmin/login' : '/login'
   }
 }
 
 export function isAdmin(user: any): boolean {
   if (!user) return false
-  const role = typeof user?.role === 'string' 
-    ? user.role 
+  const role = typeof user?.role === 'string'
+    ? user.role
     : user?.role?.roleName ?? ''
-  return role.toLowerCase() === 'admin'
+  const r = role.toLowerCase()
+  return r === 'admin' || r === 'superadmin'
+}
+
+export function isSuperAdmin(user: any): boolean {
+  if (!user) return false
+  const role = typeof user?.role === 'string'
+    ? user.role
+    : user?.role?.roleName ?? ''
+  return role.toLowerCase() === 'superadmin'
 }
 
 export function isEmployee(user: any): boolean {

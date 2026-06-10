@@ -9,7 +9,8 @@ const adminMiddleware = (req, res, next) => {
       ? req.user.role
       : req.user?.role?.roleName ?? "";
 
-  if (role.toLowerCase() !== "admin") {
+  const normalized = role.toLowerCase();
+  if (normalized !== "admin" && normalized !== "superadmin") {
     return res.status(403).json({ message: "Access denied. Admin only." });
   }
 

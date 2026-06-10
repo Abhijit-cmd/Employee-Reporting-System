@@ -1,4 +1,5 @@
 const prisma = require("../../prisma/prismaClient");
+const bcrypt = require("bcrypt");
 
 exports.createReport = async (req, res) => {
   try {
@@ -104,5 +105,40 @@ exports.updateTargetAchieved = async (req, res) => {
     res.status(200).json({ message: "Target updated", target: updated });
   } catch (error) {
     res.status(500).json({ message: "Failed to update target" });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    if (!currentPassword?.trim()) return res.status(400).json({ message: "Current password is required" });
+    if (!newPassword?.trim()) return res.status(400).json({ message: "New password is required" });
+    if (!confirmNewPassword?.trim()) return res.status(400).json({ message: "Confirm new password is required" });
+
+    if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters" });
+
+    if (newPassword !== confirmNewPassword) return res.status(400).json({ message: "New password and confirm password must match" });
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isCurrentPasswordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordMatch) return res.status(400).json({ message: "Current password is incorrect" });
+
+    const isNewPasswordSameAsCurrent = await bcrypt.compare(newPassword, user.password);
+    if (isNewPasswordSameAsCurrent) return res.status(400).json({ message: "New password cannot be the same as current password" });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to update password" });
   }
 };

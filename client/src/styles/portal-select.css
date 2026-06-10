@@ -1,0 +1,99 @@
+/* ── Portal Select / Appraisal Placeholder ─────────────────────────────────── */
+
+.portal-select-container {
+  width: 100%;
+  max-width: 760px;
+  text-align: center;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+  padding: 48px 40px;
+}
+
+.portal-select-logo {
+  width: 100px;
+  height: auto;
+  margin: 0 auto 24px;
+  display: block;
+}
+
+.portal-select-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary, #c62828);
+  margin: 0 0 8px;
+}
+
+.portal-select-sub {
+  font-size: 14px;
+  color: var(--text-muted, #6b7280);
+  margin: 0 0 36px;
+  line-height: 1.6;
+}
+
+.portal-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.portal-select-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 24px;
+  border: 2px solid #f0e0e0;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #fff5f5 100%);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+
+.portal-select-card:hover {
+  border-color: var(--primary, #c62828);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(198, 40, 40, 0.15);
+}
+
+.portal-select-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--primary, #c62828);
+  flex-shrink: 0;
+}
+
+.portal-select-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.portal-select-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+}
+
+.portal-select-card-desc {
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .portal-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-select-container {
+    padding: 32px 20px;
+  }
+}

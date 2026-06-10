@@ -21,7 +21,17 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return errorResponse(res, "Invalid credentials", 401);
     if (!user.role) return errorResponse(res, "User role not found", 500);
-    if (user.role.roleName.toLowerCase() !== role.toLowerCase()) return errorResponse(res, "Invalid role selected", 403);
+
+    // "Admin" portal login covers both Admin and SuperAdmin accounts;
+    // "Employee" portal login covers Employee accounts only.
+    const dbRole = user.role.roleName.toLowerCase();
+    const requestedRole = role.toLowerCase();
+    const roleMatches =
+      requestedRole === "admin"
+        ? dbRole === "admin" || dbRole === "superadmin"
+        : dbRole === requestedRole;
+
+    if (!roleMatches) return errorResponse(res, "Invalid role selected", 403);
 
     const accessToken = jwt.sign({ id: user.id, role: user.role.roleName }, process.env.JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = jwt.sign({ id: user.id, nonce: crypto.randomUUID() }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });

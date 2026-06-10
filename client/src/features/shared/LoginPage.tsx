@@ -6,7 +6,6 @@ import {
   IcoMail,
   IcoShield,
   IcoSignIn,
-  IcoUser,
 } from './icons/index'
 
 const BENEFITS = [
@@ -39,14 +38,18 @@ import { showToast } from '../../lib/feedback'
 import '../../styles/login.css'
 import { saveUser, getStoredUser, hasActiveSession, isAdmin } from '../../lib/auth'
 
-export default function LoginPage() {
+interface Props {
+  portal?: 'employee' | 'admin'
+}
+
+export default function LoginPage({ portal = 'employee' }: Props) {
   const navigate = useNavigate()
 
   // If already logged in, skip login page entirely
   useEffect(() => {
     const user = getStoredUser()
     if (hasActiveSession() && user) {
-      navigate(isAdmin(user) ? '/admin/dashboard' : '/employee/dashboard', { replace: true })
+      navigate(isAdmin(user) ? '/superadmin/dashboard' : '/employee/select', { replace: true })
     }
   }, [])
 
@@ -77,7 +80,6 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const [role,     setRole]     = useState<'admin' | 'employee'>('admin')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [showPw,   setShowPw]   = useState(false)
@@ -95,7 +97,7 @@ export default function LoginPage() {
 
     try {
       const url = `${API_BASE_URL}/api/auth/login`
-      const body = { email, password, role: role === 'admin' ? 'Admin' : 'Employee' }
+      const body = { email, password, role: portal === 'admin' ? 'Admin' : 'Employee' }
 
       const response = await fetch(url, {
         method: 'POST',
@@ -125,10 +127,10 @@ export default function LoginPage() {
     ? data.user.role
     : data.user?.role?.roleName ?? ''
 
-      if (userRole.toLowerCase() === 'admin') {
-        navigate('/admin/dashboard', { replace: true })
+      if (userRole.toLowerCase() === 'employee') {
+        navigate('/employee/select', { replace: true })
       } else {
-        navigate('/employee/dashboard', { replace: true })
+        navigate('/superadmin/dashboard', { replace: true })
       }
     } catch (err) {
       setError(
@@ -186,29 +188,21 @@ export default function LoginPage() {
 
         <div className="login-right">
           <div className="login-card">
-            <div className="login-card-title">Login to Your Account</div>
-            <div className="login-card-sub">Choose your role and sign in to continue</div>
-
-            <div className="login-roles">
-                <button
-                  type="button"
-                  className={`login-role-btn${role === 'admin' ? ' active' : ''}`}
-                  onClick={() => { setRole('admin'); resetAuthState() }}
-                >
-                  <div className="login-role-icon"><IcoShield /></div>
-                  <div className="login-role-name">Admin</div>
-                  <div className="login-role-sub">Super Admin Access</div>
-                </button>
-                <button
-                  type="button"
-                  className={`login-role-btn${role === 'employee' ? ' active' : ''}`}
-                  onClick={() => { setRole('employee'); resetAuthState() }}
-                >
-                  <div className="login-role-icon"><IcoUser /></div>
-                  <div className="login-role-name">Employee</div>
-                  <div className="login-role-sub">Employee Access</div>
-                </button>
-              </div>
+            <div className="login-card-title">
+              {portal === 'admin' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 22, height: 22 }}><IcoShield /></span>
+                  Super Admin Login
+                </span>
+              ) : (
+                'Login to Your Account'
+              )}
+            </div>
+            <div className="login-card-sub">
+              {portal === 'admin'
+                ? 'Sign in to manage the platform'
+                : 'Sign in to your account to continue'}
+            </div>
 
             <form onSubmit={handleSubmit} noValidate>
               {/* Registration disabled — admin creates employee accounts

@@ -43,16 +43,16 @@ export default function AdminApp() {
   const [employeeSearch, setEmployeeSearch] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const adminPage = location.pathname.replace(/^\/admin\/?/, '').split('/')[0] || 'dashboard'
+  const adminPage = location.pathname.replace(/^\/superadmin\/?/, '').split('/')[0] || 'dashboard'
 
   function handleNavigate(page: string) {
-    navigate(`/admin/${page}`, { replace: true })
+    navigate(`/superadmin/${page}`, { replace: true })
     setSidebarOpen(false)
   }
 
   function handleSearch(q: string) {
     setEmployeeSearch(q)
-    navigate('/admin/employees', { replace: true })
+    navigate('/superadmin/employees', { replace: true })
   }
 
   return (
