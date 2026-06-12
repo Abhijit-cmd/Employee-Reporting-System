@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../../../lib/api'
 import type { Report } from '../../../types'
 import { formatDateTime, formatMmyyyy, statusClass } from '../../../lib/utils'
+import EmployeeViewReportDrawer from '../components/EmployeeViewReportDrawer'
 import {
   IconChevronLeft,
   IconChevronRight,
   IconFileText,
   IconPlus,
+  IconEye,
 } from '../../shared/icons'
 
 const PAGE_SIZE = 10
@@ -31,6 +33,7 @@ export default function MonthlyReportsPage({ onNavigate }: Props) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -102,12 +105,13 @@ export default function MonthlyReportsPage({ onNavigate }: Props) {
                   <th>Prepared By</th>
                   <th>Status</th>
                   <th>Submitted On</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
                       <div style={{ width: 40, height: 40, margin: '0 auto 8px', opacity: 0.3, fontSize: 40 }}>
                         <IconFileText />
                       </div>
@@ -128,6 +132,16 @@ export default function MonthlyReportsPage({ onNavigate }: Props) {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{formatDateTime(r.createdAt)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="action-btn"
+                        onClick={() => setSelectedReport(r)}
+                        title="View report"
+                      >
+                        <IconEye />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -156,6 +170,13 @@ export default function MonthlyReportsPage({ onNavigate }: Props) {
           </div>
         )}
       </div>
+      {selectedReport && (
+        <EmployeeViewReportDrawer
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+          onNavigate={onNavigate}
+        />
+      )}
     </main>
   )
 }

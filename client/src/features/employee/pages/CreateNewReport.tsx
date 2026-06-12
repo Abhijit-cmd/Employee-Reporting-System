@@ -4,6 +4,7 @@ import { apiFetch } from '../../../lib/api'
 import { getStoredUser } from '../../../lib/auth'
 import { showToast } from '../../../lib/feedback'
 import { safeSetItem, safeGetItem } from '../../../lib/utils'
+import type { Report } from '../../../types'
 
 const DRAFT_KEY = 'report_draft'
 const DRAFT_VERSION = 1
@@ -55,6 +56,7 @@ const toNumber = (v: string): number => {
 
 interface Props {
   onBack: () => void
+  reportId?: string
 }
 
 function CharCount({ value, max }: { value: string; max: number }) {
@@ -69,7 +71,7 @@ function SectionBadge({ num }: { num: number }) {
   return <div className="section-badge">{num}</div>
 }
 
-export default function CreateNewReport({ onBack }: Props) {
+export default function CreateNewReport({ onBack, reportId }: Props) {
   const [mmyyyy, setMmyyyy] = useState('')
   const [businessOwner, setBusinessOwner] = useState('')
   const [preparedBy, setPreparedBy] = useState('')
@@ -86,9 +88,10 @@ export default function CreateNewReport({ onBack }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const MAX = 1000
+  const MAX = 500
 
   useEffect(() => {
+    if (reportId) return
     const user = getStoredUser()
     if (!user) return
     try {
@@ -115,7 +118,34 @@ export default function CreateNewReport({ onBack }: Props) {
     } catch (e) {
       console.warn('Failed to load draft:', e)
     }
-  }, [])
+  }, [reportId])
+
+  // Load existing report when editing
+  useEffect(() => {
+    if (!reportId) return
+    let cancelled = false
+    apiFetch<Report>(`/api/reports/${reportId}`)
+      .then((data) => {
+        if (cancelled) return
+        setMmyyyy(data.mmyyyy)
+        setBusinessOwner(data.businessOwner)
+        setPreparedBy(data.preparedBy)
+        setReviewedBy(data.reviewedBy)
+        setCustomersRegistered(String(data.customersRegistered))
+        setSuppliersRegistered(String(data.suppliersRegistered))
+        setNewBrandProducts(String(data.newBrandProducts))
+        setSuccessStories(String(data.successStories))
+        setWebsiteVisitors(String(data.websiteVisitors))
+        setChallenges(data.challenges ?? '')
+        setSalesBooking(data.salesBooking ?? '')
+        setTargetVsAchievement(data.targetVsAchievement ?? '')
+        setAccomplishments(data.accomplishments ?? '')
+      })
+      .catch(() => {
+        // apiFetch already shows an error toast for failed requests
+      })
+    return () => { cancelled = true }
+  }, [reportId])
 
   // Cleanup abort controller on unmount
   useEffect(() => {
@@ -223,11 +253,19 @@ export default function CreateNewReport({ onBack }: Props) {
     setSubmitting(true)
     abortControllerRef.current = new AbortController()
     try {
-      await apiFetch('/api/reports/create', {
-        method: 'POST',
-        body: JSON.stringify(submitPayload),
-        signal: abortControllerRef.current.signal,
-      })
+      if (reportId) {
+        await apiFetch(`/api/reports/${reportId}`, {
+          method: 'PUT',
+          body: JSON.stringify(submitPayload),
+          signal: abortControllerRef.current.signal,
+        })
+      } else {
+        await apiFetch('/api/reports/create', {
+          method: 'POST',
+          body: JSON.stringify(submitPayload),
+          signal: abortControllerRef.current.signal,
+        })
+      }
       const user = getStoredUser()
       if (user) {
         try {
@@ -347,6 +385,9 @@ export default function CreateNewReport({ onBack }: Props) {
         <div className="card cnr-card">
           <div className="cnr-card-header">
             <SectionBadge num={1} />
+            <span className="cnr-card-title">
+              Key Performance Indicator<span className="req">*</span>
+            </span>
           </div>
           <div className="cnr-card-body">
             {[
@@ -507,10 +548,10 @@ export default function CreateNewReport({ onBack }: Props) {
             className="cnr-btn-submit"
             type="button"
             disabled={submitting}
-            onClick={() => submitReport('Report submitted successfully')}
+            onClick={() => submitReport(reportId ? 'Report updated successfully' : 'Report submitted successfully')}
           >
             <IconPlus />
-            {submitting ? 'Submitting…' : 'Submit Report'}
+            {submitting ? (reportId ? 'Updating…' : 'Submitting…') : (reportId ? 'Update Report' : 'Submit Report')}
           </button>
         </div>
       </div>

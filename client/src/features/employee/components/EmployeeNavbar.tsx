@@ -54,14 +54,16 @@ export default function EmployeeNavbar({ page, onNavigate, onMenuClick }: Props)
         </p>
       </div>
 
-      <button
-        className="emp-create-btn"
-        type="button"
-        onClick={() => onNavigate('create-report')}
-      >
-        <IconPlus />
-        <span>Create New Report</span>
-      </button>
+      {(page === 'home' || page === 'create-report') && (
+        <button
+          className="emp-create-btn"
+          type="button"
+          onClick={() => onNavigate('create-report')}
+        >
+          <IconPlus />
+          <span>Create New Report</span>
+        </button>
+      )}
 
       <div className="navbar-actions">
         <button

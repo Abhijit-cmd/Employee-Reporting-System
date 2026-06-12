@@ -8,6 +8,187 @@ const successResponse = (res, data, status = 200) =>
 const errorResponse = (res, message, status = 500) =>
   res.status(status).json({ success: false, message });
 
+// Wrap text to fit within maxWidth, breaking long words if needed
+function wrapText(doc, text, maxWidth, fontSize) {
+  if (!text) return [];
+  doc.fontSize(fontSize);
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let current = "";
+  words.forEach(word => {
+    const test = current ? current + " " + word : word;
+    if (doc.widthOfString(test) <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      if (doc.widthOfString(word) > maxWidth) {
+        let remaining = word;
+        while (remaining.length > 0) {
+          let chunk = remaining;
+          while (chunk.length > 0 && doc.widthOfString(chunk) > maxWidth) {
+            chunk = chunk.slice(0, -1);
+          }
+          lines.push(chunk);
+          remaining = remaining.slice(chunk.length);
+        }
+        current = "";
+      } else {
+        current = word;
+      }
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+// Renders a single report as a structured, branded page in the PDF document
+function generateReportPDF(doc, report, path, fs, logoPath, pageNumber) {
+  const drawFooter = () => {
+    const y = 770;
+    doc.strokeColor("#E0E0E0").lineWidth(1).moveTo(50, y - 10).lineTo(550, y - 10).stroke();
+    doc.font("Helvetica").fontSize(9).fillColor("#666");
+    doc.text("Generated from Employee Reporting System", 50, y, { align: "left" });
+    doc.text(`Generated Date: ${new Date().toLocaleDateString()}`, 0, y, { align: "center", width: 600 });
+    doc.text(`Page ${pageNumber}`, 50, y, { align: "right" });
+  };
+
+  // --- Header ---
+  doc.y = 30;
+  if (fs.existsSync(logoPath)) {
+    try { doc.image(logoPath, 50, 30, { width: 60, height: 60 }); } catch (e) {}
+  }
+  doc.font("Helvetica-Bold").fontSize(20).fillColor("#D32F2F").text("Indithrive Infratech Pvt LTD", 130, 40);
+  doc.fontSize(14).fillColor("#444").text("Monthly Overview", 130, 65);
+  doc.strokeColor("#D32F2F").lineWidth(2).moveTo(50, 95).lineTo(550, 95).stroke();
+  doc.y = 110;
+
+  // --- Info section ---
+  const monthYear = report.mmyyyy;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const m = parseInt(monthYear.slice(0, 2)) - 1;
+  const y = monthYear.slice(2);
+  const infoData = [
+    ["Month & Year", `${months[m]} ${y}`],
+    ["Business Owner", report.businessOwner],
+    ["Prepared By", report.preparedBy],
+    ["Reviewed By", report.reviewedBy],
+    ["Employee Name", report.user?.name],
+    ["Employee ID", report.user?.employeeId],
+  ];
+  doc.fillColor("#F9F9F9").rect(50, doc.y, 490, 78).fill();
+  doc.strokeColor("#E0E0E0").lineWidth(1).rect(50, doc.y, 490, 78).stroke();
+  const infoStartY = doc.y + 10;
+  infoData.forEach((item, i) => {
+    const x = i % 2 === 0 ? 60 : 330;
+    const yPos = infoStartY + Math.floor(i / 2) * 22;
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#555").text(item[0] + ":", x, yPos, { continued: true });
+    doc.font("Helvetica").fillColor("#222").text(" " + (item[1] || ""));
+  });
+  doc.y = infoStartY + 78;
+
+  // --- Cards (2x2) ---
+  const cardWidth = 235;
+  const cardGap = 20;
+  const startX = 50;
+  const startY = doc.y + 15;
+
+  const calculateCardHeight = (content, isList = false) => {
+    doc.font("Helvetica").fontSize(7);
+    let height = 40; // title area
+    if (isList) {
+      content.forEach(({ label, value }) => {
+        const text = `${label}: ${value || ""}`;
+        height += doc.heightOfString(text, { width: cardWidth - 20 }) + 10;
+      });
+    } else {
+      height += doc.heightOfString(String(content || ""), { width: cardWidth - 20 }) + 20;
+    }
+    return height + 20;
+  };
+
+  const card1Height = calculateCardHeight([
+    { label: "Customer Registrations", value: report.customersRegistered },
+    { label: "Supplier Registrations", value: report.suppliersRegistered },
+    { label: "Products/Brands Added", value: report.newBrandProducts },
+    { label: "New Success Stories", value: report.successStories },
+    { label: "Website Visits", value: report.websiteVisitors },
+  ], true);
+
+  const card2Height = calculateCardHeight(report.challenges || "No challenges reported");
+
+  const card3Height = calculateCardHeight([
+    { label: "Sales Booking (Productwise Qty & Val)", value: report.salesBooking },
+    { label: "Target vs Achievement", value: report.targetVsAchievement },
+  ], true);
+
+  const card4Height = calculateCardHeight(report.accomplishments || "No accomplishments reported");
+
+  let topRowHeight = Math.max(card1Height, card2Height);
+  let bottomRowHeight = Math.max(card3Height, card4Height);
+  const totalCardsHeight = topRowHeight + cardGap + bottomRowHeight;
+
+  const footerTop = 760;
+  if (startY + totalCardsHeight > footerTop - 20) {
+    const availableHeight = footerTop - startY - cardGap - 20;
+    const newRowHeight = Math.floor(availableHeight / 2);
+    topRowHeight = newRowHeight;
+    bottomRowHeight = newRowHeight;
+  }
+
+  const drawCard = (x, y, w, h, title, content, isList = false) => {
+    doc.fillColor("#FFF").rect(x, y, w, h).fill();
+    doc.strokeColor("#D32F2F").lineWidth(1).rect(x, y, w, h).stroke();
+    doc.fillColor("#D32F2F").rect(x, y, w, 30).fill();
+    const titleLines = wrapText(doc, title, w - 20, 8);
+    doc.fillColor("#FFF").font("Helvetica-Bold").fontSize(8);
+    titleLines.forEach((line, i) => {
+      doc.text(line, x + 10, y + 9 + i * 12, { width: w - 20 });
+    });
+    let cy = y + 40 + (titleLines.length - 1) * 12;
+    const maxW = w - 20;
+    doc.font("Helvetica").fontSize(7).fillColor("#333");
+
+    if (isList) {
+      content.forEach(({ label, value }) => {
+        const fullText = `${label}: ${value || ""}`;
+        doc.font("Helvetica").fontSize(7);
+        doc.text(fullText, x + 10, cy, { width: maxW });
+        cy += doc.heightOfString(fullText, { width: maxW }) + 8;
+        cy += 6;
+      });
+    } else {
+      doc.font("Helvetica").fontSize(7).fillColor("#333");
+      const lines = wrapText(doc, String(content || "No data"), maxW, 7);
+      lines.forEach(line => {
+        doc.text(line, x + 10, cy);
+        cy += 9;
+      });
+    }
+  };
+
+  drawCard(startX, startY, cardWidth, topRowHeight, "Key Performance Indicator", [
+    { label: "Customer Registrations", value: report.customersRegistered },
+    { label: "Supplier Registrations", value: report.suppliersRegistered },
+    { label: "Products/Brands Added", value: report.newBrandProducts },
+    { label: "New Success Stories", value: report.successStories },
+    { label: "Website Visits", value: report.websiteVisitors },
+  ], true);
+
+  drawCard(startX + cardWidth + cardGap, startY, cardWidth, topRowHeight,
+    "Customer/Supplier/Logistics/Finance Challenges", report.challenges || "No challenges reported");
+
+  drawCard(startX, startY + topRowHeight + cardGap, cardWidth, bottomRowHeight,
+    "Your Individual Metrics and YTD Achievement", [
+      { label: "Sales Booking (Productwise Qty & Val)", value: report.salesBooking },
+      { label: "Target vs Achievement", value: report.targetVsAchievement },
+    ], true);
+
+  drawCard(startX + cardWidth + cardGap, startY + topRowHeight + cardGap, cardWidth, bottomRowHeight,
+    "Your Top Accomplishments YTD", report.accomplishments || "No accomplishments reported");
+
+  drawFooter();
+}
+
 exports.getReports = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -264,41 +445,17 @@ exports.downloadReport = async (req, res) => {
       return res.send(Buffer.from(buf));
     }
 
-    const doc = new PDFDocument();
+    const path = require("path");
+    const fs = require("fs");
+    const logoPath = path.join(__dirname, "../../../client/public/logo.png");
+
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="report-${report.id}.pdf"`);
     doc.on("error", (err) => { console.error("PDF error:", err); res.destroy(); });
     doc.pipe(res);
-    doc.fontSize(20).text("Monthly Report", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(14);
-    doc.text(`Employee Name: ${report.user?.name}`);
-    doc.text(`Employee ID: ${report.user?.employeeId}`);
-    doc.text(`Month: ${report.mmyyyy}`);
-    doc.text(`Business Owner: ${report.businessOwner}`);
-    doc.text(`Prepared By: ${report.preparedBy}`);
-    doc.text(`Reviewed By: ${report.reviewedBy}`);
-    doc.text(`Status: ${report.reportStatus?.statusName}`);
-    doc.moveDown();
-    doc.fontSize(16).text("Overview");
-    doc.fontSize(12);
-    doc.text(`Customers Registered: ${report.customersRegistered}`);
-    doc.text(`Suppliers Registered: ${report.suppliersRegistered}`);
-    doc.text(`New Brand Products: ${report.newBrandProducts}`);
-    doc.text(`Success Stories: ${report.successStories}`);
-    doc.text(`Website Visitors: ${report.websiteVisitors}`);
-    doc.moveDown();
-    doc.fontSize(16).text("Challenges");
-    doc.fontSize(12).text(report.challenges || "");
-    doc.moveDown();
-    doc.fontSize(16).text("Sales Booking");
-    doc.fontSize(12).text(report.salesBooking || "");
-    doc.moveDown();
-    doc.fontSize(16).text("Target Vs Achievement");
-    doc.fontSize(12).text(report.targetVsAchievement || "");
-    doc.moveDown();
-    doc.fontSize(16).text("Accomplishments");
-    doc.fontSize(12).text(report.accomplishments || "");
+
+    generateReportPDF(doc, report, path, fs, logoPath, 1);
     doc.end();
   } catch (error) {
     console.error(error);
@@ -343,36 +500,19 @@ exports.downloadAllReports = async (req, res) => {
       return res.send(Buffer.from(buf));
     }
 
-    const doc = new PDFDocument({ margin: 40 });
+    const path = require("path");
+    const fs = require("fs");
+    const logoPath = path.join(__dirname, "../../../client/public/logo.png");
+
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="all-reports.pdf"');
     doc.on("error", (err) => { console.error("PDF error:", err); res.destroy(); });
     doc.pipe(res);
-    doc.fontSize(22).text("All Employee Reports", { align: "center" });
-    doc.moveDown(2);
+
     reports.forEach((report, index) => {
-      doc.fontSize(18).text(`Report ${index + 1}`, { underline: true });
-      doc.moveDown();
-      doc.fontSize(12);
-      doc.text(`Employee Name: ${report.user?.name}`);
-      doc.text(`Employee ID: ${report.user?.employeeId}`);
-      doc.text(`Month: ${report.mmyyyy}`);
-      doc.text(`Business Owner: ${report.businessOwner}`);
-      doc.text(`Prepared By: ${report.preparedBy}`);
-      doc.text(`Reviewed By: ${report.reviewedBy}`);
-      doc.text(`Status: ${report.reportStatus?.statusName}`);
-      doc.moveDown();
-      doc.text(`Customers Registered: ${report.customersRegistered}`);
-      doc.text(`Suppliers Registered: ${report.suppliersRegistered}`);
-      doc.text(`New Brand Products: ${report.newBrandProducts}`);
-      doc.text(`Success Stories: ${report.successStories}`);
-      doc.text(`Website Visitors: ${report.websiteVisitors}`);
-      doc.moveDown();
-      doc.text("Challenges:"); doc.text(report.challenges || ""); doc.moveDown();
-      doc.text("Sales Booking:"); doc.text(report.salesBooking || ""); doc.moveDown();
-      doc.text("Target Vs Achievement:"); doc.text(report.targetVsAchievement || ""); doc.moveDown();
-      doc.text("Accomplishments:"); doc.text(report.accomplishments || "");
-      if (index !== reports.length - 1) doc.addPage();
+      generateReportPDF(doc, report, path, fs, logoPath, index + 1);
+      if (index < reports.length - 1) doc.addPage();
     });
     doc.end();
   } catch (error) {

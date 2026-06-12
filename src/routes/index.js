@@ -52,6 +52,9 @@ reportsRouter.get("/my-reports", employeeReportController.getMyReports);
 reportsRouter.get("/my-targets", employeeReportController.getMyTargets);
 reportsRouter.patch("/my-targets/:id/achieve", employeeReportController.updateTargetAchieved);
 reportsRouter.put("/change-password", employeeReportController.changePassword);
+// IMPORTANT: specific routes must come BEFORE parameterised routes
+reportsRouter.get("/:id", employeeReportController.getReportById);
+reportsRouter.put("/:id", employeeReportController.updateReport);
 
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 const adminRouter = express.Router();

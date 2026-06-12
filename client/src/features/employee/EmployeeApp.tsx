@@ -13,14 +13,16 @@ import MyTargetsPage from './pages/MyTargetsPage'
 
 function EmployeePageContent({
   page,
+  reportId,
   onNavigate,
 }: {
   page: string
+  reportId?: string
   onNavigate: (p: string) => void
 }) {
   switch (page) {
     case 'create-report':
-      return <CreateNewReport onBack={() => onNavigate('home')} />
+      return <CreateNewReport reportId={reportId} onBack={() => onNavigate('home')} />
     case 'settings':
       return <SettingsPage onBack={() => onNavigate('home')} />
     case 'monthly-reports':
@@ -43,7 +45,9 @@ export default function EmployeeApp() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const empPage = location.pathname.replace(/^\/employee\/?/, '').split('/')[0] || 'home'
+  const pathParts = location.pathname.replace(/^\/employee\/?/, '').split('/')
+  const empPage = pathParts[0] || 'home'
+  const reportId = pathParts[1]
 
   function handleNavigate(page: string) {
     navigate(`/employee/${page}`, { replace: true })
@@ -56,7 +60,7 @@ export default function EmployeeApp() {
       <div className={`sidebar-overlay${sidebarOpen ? ' show' : ''}`} onClick={() => setSidebarOpen(false)} />
       <div className="main-wrapper">
         <EmployeeNavbar page={empPage} onNavigate={handleNavigate} onMenuClick={() => setSidebarOpen((o) => !o)} />
-        <EmployeePageContent page={empPage} onNavigate={handleNavigate} />
+        <EmployeePageContent page={empPage} reportId={reportId} onNavigate={handleNavigate} />
       </div>
     </div>
   )
