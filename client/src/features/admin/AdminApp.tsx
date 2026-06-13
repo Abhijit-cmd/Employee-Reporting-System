@@ -6,9 +6,14 @@ import AdminDashboard from './AdminDashboard'
 import EmployeesPage from './pages/EmployeesPage'
 import ReportsPage from '../../features/admin/pages/ReportsPage'
 import TargetsPage from '../../features/admin/pages/TargetsPage'
+import YearlyTargetsPage from '../../features/admin/pages/YearlyTargetsPage'
 import AdminSettingsPage from '../../features/admin/pages/AdminSettingsPage'
 import AdminAnnouncementsPage from '../../features/admin/pages/AnnouncementsPage'
 import AnalyticsPage from '../../features/admin/pages/AnalyticsPage'
+import LeadershipSettingsPage from '../../features/admin/pages/LeadershipSettingsPage'
+import RaiseAppraisalPage from '../../features/admin/pages/RaiseAppraisalPage'
+import RaisedAppraisalsPage from '../../features/admin/pages/RaisedAppraisalsPage'
+import MyAppraisalsAsManagerPage from '../../features/admin/pages/MyAppraisalsAsManagerPage'
 
 function AdminPageContent({
   page,
@@ -26,12 +31,22 @@ function AdminPageContent({
       return <ReportsPage onNavigate={onNavigate} initialTab="reports" />
     case 'targets':
       return <TargetsPage />
+    case 'yearly-targets':
+      return <YearlyTargetsPage />
     case 'announcements':
       return <AdminAnnouncementsPage />
     case 'analytics':
       return <AnalyticsPage />
     case 'settings':
       return <AdminSettingsPage onBack={() => onNavigate('dashboard')} />
+    case 'leadership-settings':
+      return <LeadershipSettingsPage />
+    case 'raise-appraisal':
+      return <RaiseAppraisalPage />
+    case 'appraisals-raised':
+      return <RaisedAppraisalsPage />
+    case 'my-appraisals':
+      return <MyAppraisalsAsManagerPage />
     default:
       return <AdminDashboard onNavigate={onNavigate} />
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
+import { monthLabel } from '../../../lib/utils'
 
 interface Target {
   id: number
@@ -8,19 +9,9 @@ interface Target {
   description: string | null
   targetValue: number
   achievedValue: number
-  targetMonth: string
+  targetMonth: string | null
   targetYear: number
   createdAt: string
-}
-
-const MONTH_NAMES = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
-]
-
-function monthLabel(m: string) {
-  const idx = parseInt(m, 10)
-  return (idx >= 1 && idx <= 12) ? MONTH_NAMES[idx - 1] : m
 }
 
 function ProgressBar({ value, max }: { value: number; max: number }) {
@@ -169,7 +160,7 @@ export default function MyTargetsPage() {
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>{t.description}</p>
                       )}
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                        {monthLabel(t.targetMonth)} {t.targetYear}
+                        {t.targetMonth ? `${monthLabel(t.targetMonth)} ${t.targetYear}` : `Yearly ${t.targetYear}`}
                       </div>
                       <ProgressBar value={t.achievedValue} max={t.targetValue} />
                     </div>

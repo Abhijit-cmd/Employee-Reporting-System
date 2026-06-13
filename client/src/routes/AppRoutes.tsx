@@ -5,7 +5,6 @@ import LoginPage from '../features/shared/LoginPage'
 import AdminApp from '../features/admin/AdminApp'
 import EmployeeApp from '../features/employee/EmployeeApp'
 import PortalSelectPage from '../features/employee/PortalSelectPage'
-import AppraisalComingSoonPage from '../features/employee/AppraisalComingSoonPage'
 
 // ── GUARD ─────────────────────────────────────────────────────────────────────
 
@@ -44,7 +43,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage portal="employee" />} />
       <Route path="/superadmin/login" element={<LoginPage portal="admin" />} />
 
-      {/* ADMIN ── requires Admin or SuperAdmin role */}
+      {/* ADMIN ── requires Manager or Leadership role */}
       <Route
         path="/superadmin/*"
         element={
@@ -60,14 +59,6 @@ export default function AppRoutes() {
         element={
           <RoleProtectedRoute role="Employee">
             <PortalSelectPage />
-          </RoleProtectedRoute>
-        }
-      />
-      <Route
-        path="/employee/yearly-report"
-        element={
-          <RoleProtectedRoute role="Employee">
-            <AppraisalComingSoonPage />
           </RoleProtectedRoute>
         }
       />

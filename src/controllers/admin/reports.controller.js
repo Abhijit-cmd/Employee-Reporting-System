@@ -1,6 +1,7 @@
 const prisma = require("../../prisma/prismaClient");
 const PDFDocument = require("pdfkit");
 const ExcelJS = require("exceljs");
+const { teamFilter } = require("../../utils/scope");
 
 const successResponse = (res, data, status = 200) =>
   res.status(status).json({ success: true, data });
@@ -217,6 +218,7 @@ exports.getAllReports = async (req, res) => {
 
     const [reports, total] = await Promise.all([
       prisma.report.findMany({
+        where: { user: teamFilter(req.user) },
         include: {
           user: { select: { id: true, name: true, employeeId: true, email: true } },
           reportStatus: true,
@@ -225,7 +227,7 @@ exports.getAllReports = async (req, res) => {
         skip,
         take: pageSize,
       }),
-      prisma.report.count(),
+      prisma.report.count({ where: { user: teamFilter(req.user) } }),
     ]);
 
     return successResponse(res, { reports, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
@@ -242,12 +244,17 @@ exports.getReportById = async (req, res) => {
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: {
-        user: { select: { id: true, name: true, employeeId: true, email: true } },
+        user: { select: { id: true, name: true, employeeId: true, email: true, managerId: true } },
         reportStatus: true,
       },
     });
 
     if (!report) return errorResponse(res, "Report not found", 404);
+
+    if (req.user.role === "Manager" && report.user?.managerId !== req.user.id) {
+      return errorResponse(res, "Report not found", 404);
+    }
+
     return successResponse(res, report);
   } catch (error) {
     console.error(error);
@@ -263,8 +270,15 @@ exports.markPending = async (req, res) => {
     const pendingStatus = await prisma.reportStatus.findFirst({ where: { statusName: "Pending" } });
     if (!pendingStatus) return res.status(500).json({ message: "Pending status not found" });
 
-    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+    const existing = await prisma.report.findUnique({
+      where: { id: reportId },
+      include: { user: { select: { managerId: true } } },
+    });
     if (!existing) return res.status(404).json({ message: "Report not found" });
+
+    if (req.user.role === "Manager" && existing.user?.managerId !== req.user.id) {
+      return res.status(404).json({ message: "Report not found" });
+    }
 
     await prisma.report.update({
       where: { id: reportId },
@@ -295,8 +309,15 @@ exports.markReviewed = async (req, res) => {
     const reviewedStatus = await prisma.reportStatus.findFirst({ where: { statusName: "Reviewed" } });
     if (!reviewedStatus) return res.status(500).json({ message: "Reviewed status not found" });
 
-    const existing = await prisma.report.findUnique({ where: { id: reportId } });
+    const existing = await prisma.report.findUnique({
+      where: { id: reportId },
+      include: { user: { select: { managerId: true } } },
+    });
     if (!existing) return res.status(404).json({ message: "Report not found" });
+
+    if (req.user.role === "Manager" && existing.user?.managerId !== req.user.id) {
+      return res.status(404).json({ message: "Report not found" });
+    }
 
     await prisma.report.update({
       where: { id: reportId },
@@ -324,19 +345,23 @@ exports.getEmployeeReports = async (req, res) => {
     const userId = Number(req.params.id);
     if (isNaN(userId)) return errorResponse(res, "Invalid employee ID", 400);
 
-    const [employee, reports] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, name: true, employeeId: true, email: true },
-      }),
-      prisma.report.findMany({
-        where: { userId },
-        include: { reportStatus: true },
-        orderBy: { mmyyyy: "desc" },
-      }),
-    ]);
+    const employee = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, employeeId: true, email: true, managerId: true },
+    });
 
     if (!employee) return errorResponse(res, "Employee not found", 404);
+
+    if (req.user.role === "Manager" && employee.managerId !== req.user.id) {
+      return errorResponse(res, "Employee not found", 404);
+    }
+
+    const reports = await prisma.report.findMany({
+      where: { userId },
+      include: { reportStatus: true },
+      orderBy: { mmyyyy: "desc" },
+    });
+
     return successResponse(res, { employee, reports });
   } catch (error) {
     console.error(error);
@@ -353,7 +378,7 @@ exports.getNotSubmitted = async (req, res) => {
 
     const [allEmployees, reports] = await Promise.all([
       prisma.user.findMany({
-        where: { role: { roleName: "Employee" } },
+        where: { role: { roleName: "Employee" }, ...teamFilter(req.user) },
         select: { id: true, name: true, employeeId: true, email: true },
         orderBy: { name: "asc" },
       }),
@@ -380,9 +405,13 @@ exports.sendReminder = async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-      select: { id: true, name: true },
+      select: { id: true, name: true, managerId: true },
     });
     if (!user) return errorResponse(res, "Employee not found", 404);
+
+    if (req.user.role === "Manager" && user.managerId !== req.user.id) {
+      return errorResponse(res, "Employee not found", 404);
+    }
 
     await prisma.notification.create({
       data: {
@@ -408,12 +437,16 @@ exports.downloadReport = async (req, res) => {
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: {
-        user: { select: { id: true, name: true, employeeId: true } },
+        user: { select: { id: true, name: true, employeeId: true, managerId: true } },
         reportStatus: true,
       },
     });
 
     if (!report) return errorResponse(res, "Report not found", 404);
+
+    if (req.user.role === "Manager" && report.user?.managerId !== req.user.id) {
+      return errorResponse(res, "Report not found", 404);
+    }
 
     const format = (req.query.format || "pdf").toLowerCase();
     if (format === "xlsx") {
@@ -466,6 +499,7 @@ exports.downloadReport = async (req, res) => {
 exports.downloadAllReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
+      where: { user: teamFilter(req.user) },
       include: {
         user: { select: { id: true, name: true, employeeId: true } },
         reportStatus: true,

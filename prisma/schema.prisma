@@ -16,7 +16,7 @@ model User {
   id         Int    @id @default(autoincrement())
 
    employeeId String? @unique @map("employee_id")
- 
+
   name String
 
   email String @unique
@@ -31,6 +31,20 @@ model User {
 
   status Status @default(active)
 
+  departmentId Int? @map("department_id")
+
+  department Department? @relation(fields: [departmentId], references: [id])
+
+  managerId Int? @map("manager_id")
+
+  manager User? @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  subordinates User[] @relation("UserManager")
+
+  designation String? @map("designation")
+
+  location String? @map("location")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -41,7 +55,12 @@ model User {
   refreshTokens RefreshToken[]
   announcements Announcement[]
 
+  appraisalsRaised   Appraisal[] @relation("AppraisalRaisedBy")
+  appraisalsReceived Appraisal[] @relation("AppraisalForUser")
+
   @@index([roleId])
+  @@index([departmentId])
+  @@index([managerId])
   @@map("user")
 }
 
@@ -102,8 +121,204 @@ model Role {
  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   users User[]
+  permissions RolePermission[]
 
   @@map("roles")
+}
+
+model Department {
+  id Int @id @default(autoincrement())
+
+  name String @unique
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  users User[]
+  kpiTemplates KpiTemplate[]
+
+  @@map("departments")
+}
+
+model KpiTemplate {
+  id Int @id @default(autoincrement())
+
+  departmentId Int @map("department_id")
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  name String
+
+  description String? @db.Text
+
+  displayOrder Int @default(0) @map("display_order")
+
+  section AppraisalSection @default(KPI) @map("section")
+
+  weight Int? @map("weight")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  appraisalKpiEntries AppraisalKpiEntry[]
+
+  @@unique([departmentId, name])
+  @@index([departmentId])
+  @@map("kpi_templates")
+}
+
+model Permission {
+  id Int @id @default(autoincrement())
+
+  key String @unique
+
+  description String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id Int @id @default(autoincrement())
+
+  roleId Int @map("role_id")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  permissionId Int @map("permission_id")
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+enum AppraisalStatus {
+  Pending
+  Acknowledged
+}
+
+enum AppraisalSection {
+  KPI
+  COMPETENCY
+  CREDIT_CONTROL
+}
+
+model Appraisal {
+  id Int @id @default(autoincrement())
+
+  raisedById Int @map("raised_by_id")
+
+  raisedBy User @relation("AppraisalRaisedBy", fields: [raisedById], references: [id], onDelete: Cascade)
+
+  userId Int @map("user_id")
+
+  user User @relation("AppraisalForUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  departmentName String @map("department_name")
+
+  periodMonth Int? @map("period_month")
+
+  periodYear Int @map("period_year")
+
+  periodQuarter Int? @map("period_quarter")
+
+  status AppraisalStatus @default(Pending)
+
+  overallComment String? @db.Text @map("overall_comment")
+
+  // Section 3 — Collections & Credit Control (Sales only)
+  creditControlComment String? @db.Text @map("credit_control_comment")
+
+  // Section 4 — Employee Self-Assessment (filled by the employee)
+  selfAchievements String? @db.Text @map("self_achievements")
+
+  selfChallenges String? @db.Text @map("self_challenges")
+
+  selfImprovements String? @db.Text @map("self_improvements")
+
+  selfSupportNeeded String? @db.Text @map("self_support_needed")
+
+  // Section 5 — Manager's Overall Assessment
+  managerStrengths String? @db.Text @map("manager_strengths")
+
+  managerDevelopmentAreas String? @db.Text @map("manager_development_areas")
+
+  actionPromotion Boolean @default(false) @map("action_promotion")
+
+  actionSalaryIncrement Boolean @default(false) @map("action_salary_increment")
+
+  actionPerformanceIncentive Boolean @default(false) @map("action_performance_incentive")
+
+  actionTrainingDevelopment Boolean @default(false) @map("action_training_development")
+
+  actionRoleEnhancement Boolean @default(false) @map("action_role_enhancement")
+
+  // Section 6 — Overall Rating
+  finalRating Int? @map("final_rating")
+
+  // Section 7 — Signatures
+  ceoName String? @map("ceo_name")
+
+  ceoSignDate String? @map("ceo_sign_date")
+
+  hrName String? @map("hr_name")
+
+  hrSignDate String? @map("hr_sign_date")
+
+  acknowledgedAt DateTime? @map("acknowledged_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  kpiEntries AppraisalKpiEntry[]
+
+  @@index([userId])
+  @@index([raisedById])
+  @@map("appraisals")
+}
+
+model AppraisalKpiEntry {
+  id Int @id @default(autoincrement())
+
+  appraisalId Int @map("appraisal_id")
+
+  appraisal Appraisal @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+
+  kpiTemplateId Int? @map("kpi_template_id")
+
+  kpiTemplate KpiTemplate? @relation(fields: [kpiTemplateId], references: [id], onDelete: SetNull)
+
+  kpiName String @map("kpi_name")
+
+  section AppraisalSection @default(KPI) @map("section")
+
+  weight Int? @map("weight")
+
+  target String? @db.Text @map("target")
+
+  achievement String? @db.Text @map("achievement")
+
+  score Int
+
+  comment String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([appraisalId])
+  @@map("appraisal_kpi_entries")
 }
 
 model ReportStatus {
@@ -155,7 +370,7 @@ model Target {
 
   achievedValue Float @default(0) @map("achieved_value")
 
-  targetMonth String @map("target_month")
+  targetMonth String? @map("target_month")
 
   targetYear Int @map("target_year")
 

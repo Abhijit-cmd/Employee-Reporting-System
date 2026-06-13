@@ -10,6 +10,7 @@ import AchievementsPage from './pages/AchievementsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import MyTargetsPage from './pages/MyTargetsPage'
+import MyAppraisalsPage from './pages/MyAppraisalsPage'
 
 function EmployeePageContent({
   page,
@@ -35,6 +36,8 @@ function EmployeePageContent({
       return <AnnouncementsPage />
     case 'my-targets':
       return <MyTargetsPage />
+    case 'my-appraisals':
+      return <MyAppraisalsPage />
     default:
       return <EmployeeDashboard onNavigate={onNavigate} />
   }

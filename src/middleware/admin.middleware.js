@@ -1,20 +1,3 @@
-const adminMiddleware = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+const requirePermission = require("./permission.middleware");
 
-  // JWT payload stores role as a string e.g. "Admin"
-  const role =
-    typeof req.user?.role === "string"
-      ? req.user.role
-      : req.user?.role?.roleName ?? "";
-
-  const normalized = role.toLowerCase();
-  if (normalized !== "admin" && normalized !== "superadmin") {
-    return res.status(403).json({ message: "Access denied. Admin only." });
-  }
-
-  next();
-};
-
-module.exports = adminMiddleware;
+module.exports = requirePermission("portal.admin.access");

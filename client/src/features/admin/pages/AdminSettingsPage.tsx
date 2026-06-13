@@ -5,8 +5,8 @@ import { showToast } from '../../../lib/feedback'
 import { loadSettings, saveSettings } from '../../../lib/settingsStorage'
 import LogoutButton from '../../shared/LogoutButton'
 import { initials } from '../../../lib/utils'
-import { getStoredUser, isSuperAdmin } from '../../../lib/auth'
-import type { ApiEmployee } from '../../../types'
+import { getStoredUser, isLeadership } from '../../../lib/auth'
+import type { ApiEmployee, Department } from '../../../types'
 
 interface Props { onBack: () => void }
 
@@ -21,6 +21,9 @@ function IcoPlus() {
 }
 function IcoX() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+}
+function IcoPencil() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 }
 function IcoEye({ show }: { show: boolean }) {
   return show
@@ -56,11 +59,60 @@ function PasswordField({ value, onChange, placeholder = 'Enter password', label 
   )
 }
 
-function AddAdminModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+function ModalSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder: string
+}) {
+  return (
+    <div className="emp-modal-field">
+      <label className="emp-modal-label">{label}</label>
+      <div className="emp-select-wrap" style={{ position: 'relative' }}>
+        <select
+          className="emp-modal-input"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{ appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+        >
+          <option value="">{placeholder}</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9ca3af' }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+function AddManagerModal({
+  onClose,
+  onAdded,
+  departments,
+  leadership,
+}: {
+  onClose: () => void
+  onAdded: () => void
+  departments: Department[]
+  leadership: ApiEmployee[]
+}) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [departmentId, setDepartmentId] = useState('')
+  const [managerId, setManagerId] = useState('')
+  const [designation, setDesignation] = useState('')
+  const [location, setLocation] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -74,11 +126,20 @@ function AddAdminModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     }
     setSubmitting(true)
     try {
-      await apiFetch('/api/admin/admins', {
+      await apiFetch('/api/admin/managers', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), password }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          password,
+          departmentId: departmentId ? Number(departmentId) : null,
+          managerId: managerId ? Number(managerId) : null,
+          designation: designation.trim() || null,
+          location: location.trim() || null,
+        }),
       })
-      showToast('Admin added successfully', 'success')
+      showToast('Manager added successfully', 'success')
       onAdded()
       onClose()
     } catch {
@@ -92,7 +153,7 @@ function AddAdminModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     <div className="emp-modal-overlay" onClick={onClose}>
       <div className="emp-modal" onClick={e => e.stopPropagation()}>
         <div className="emp-modal-header">
-          <span className="emp-modal-title">Add New Admin</span>
+          <span className="emp-modal-title">Add New Manager</span>
           <button type="button" className="emp-modal-close" onClick={onClose}><IcoX /></button>
         </div>
         <form className="emp-modal-body" onSubmit={handleSubmit}>
@@ -109,9 +170,164 @@ function AddAdminModal({ onClose, onAdded }: { onClose: () => void; onAdded: () 
             <input className="emp-modal-input" type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
           <PasswordField label="Password *" value={password} onChange={setPassword} placeholder="Initial password" />
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Designation</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Sales Executive" value={designation} onChange={e => setDesignation(e.target.value)} />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Location/Region</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Mumbai" value={location} onChange={e => setLocation(e.target.value)} />
+          </div>
+          <ModalSelect
+            label="Department"
+            value={departmentId}
+            onChange={setDepartmentId}
+            placeholder="— No department —"
+            options={departments.map(d => ({ value: String(d.id), label: d.name }))}
+          />
+          <ModalSelect
+            label="Manager (Leadership)"
+            value={managerId}
+            onChange={setManagerId}
+            placeholder="— No manager —"
+            options={leadership.map(m => ({ value: String(m.id), label: `${m.name} (${m.employeeId})` }))}
+          />
           <div className="emp-modal-footer">
             <button type="button" className="cnr-btn-back" onClick={onClose} disabled={submitting}>Cancel</button>
-            <button type="submit" className="cnr-btn-submit" disabled={submitting}>{submitting ? 'Adding…' : 'Add Admin'}</button>
+            <button type="submit" className="cnr-btn-submit" disabled={submitting}>{submitting ? 'Adding…' : 'Add Manager'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function EditManagerModal({
+  manager,
+  onClose,
+  onUpdated,
+  departments,
+  leadership,
+}: {
+  manager: ApiEmployee
+  onClose: () => void
+  onUpdated: (updated: Partial<ApiEmployee>) => void
+  departments: Department[]
+  leadership: ApiEmployee[]
+}) {
+  const [name, setName] = useState(manager.name)
+  const [email, setEmail] = useState(manager.email)
+  const [phone, setPhone] = useState(manager.phone ?? '')
+  const [password, setPassword] = useState('')
+  const [departmentId, setDepartmentId] = useState(manager.departmentId ? String(manager.departmentId) : '')
+  const [managerId, setManagerId] = useState(manager.managerId ? String(manager.managerId) : '')
+  const [designation, setDesignation] = useState(manager.designation ?? '')
+  const [location, setLocation] = useState(manager.location ?? '')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) { showToast('Name is required', 'error'); return }
+    if (!email.trim()) { showToast('Email is required', 'error'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email address', 'error'); return }
+    if (password && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+      showToast('Password must be at least 8 characters with uppercase, lowercase and a number', 'error')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        departmentId: departmentId ? Number(departmentId) : null,
+        managerId: managerId ? Number(managerId) : null,
+        designation: designation.trim() || null,
+        location: location.trim() || null,
+      }
+      if (password) body.password = password
+      await apiFetch(`/api/admin/managers/${manager.id}`, { method: 'PUT', body: JSON.stringify(body) })
+      const updatedDept = departmentId ? departments.find(d => String(d.id) === departmentId) : null
+      const updatedManager = managerId ? leadership.find(m => String(m.id) === managerId) : null
+      onUpdated({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        departmentId: departmentId ? Number(departmentId) : null,
+        department: updatedDept ? { id: updatedDept.id, name: updatedDept.name } : null,
+        designation: designation.trim() || null,
+        location: location.trim() || null,
+        managerId: managerId ? Number(managerId) : null,
+        manager: updatedManager ? { id: updatedManager.id, name: updatedManager.name, employeeId: updatedManager.employeeId } : null,
+      })
+      showToast('Manager updated successfully', 'success')
+      onClose()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to update manager', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="emp-modal-overlay" onClick={onClose}>
+      <div className="emp-modal" onClick={e => e.stopPropagation()}>
+        <div className="emp-modal-header">
+          <div>
+            <span className="emp-modal-title">Edit Manager</span>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+              {manager.employeeId} · {manager.name}
+            </div>
+          </div>
+          <button type="button" className="emp-modal-close" onClick={onClose}><IcoX /></button>
+        </div>
+        <form className="emp-modal-body" onSubmit={handleSubmit}>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Full Name *</label>
+            <input className="emp-modal-input" type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Email Address *</label>
+            <input className="emp-modal-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Phone</label>
+            <input className="emp-modal-input" type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
+          </div>
+          <PasswordField
+            label="New Password (leave blank to keep current)"
+            value={password}
+            onChange={setPassword}
+            placeholder="Leave blank to keep unchanged"
+          />
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: -8, paddingLeft: 2 }}>
+            Only fill in if you want to reset this manager's password.
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Designation</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Sales Manager" value={designation} onChange={e => setDesignation(e.target.value)} />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Location/Region</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Mumbai" value={location} onChange={e => setLocation(e.target.value)} />
+          </div>
+          <ModalSelect
+            label="Department"
+            value={departmentId}
+            onChange={setDepartmentId}
+            placeholder="— No department —"
+            options={departments.map(d => ({ value: String(d.id), label: d.name }))}
+          />
+          <ModalSelect
+            label="Manager (Leadership)"
+            value={managerId}
+            onChange={setManagerId}
+            placeholder="— No manager —"
+            options={leadership.map(m => ({ value: String(m.id), label: `${m.name} (${m.employeeId})` }))}
+          />
+          <div className="emp-modal-footer">
+            <button type="button" className="cnr-btn-back" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="cnr-btn-submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save Changes'}</button>
           </div>
         </form>
       </div>
@@ -135,38 +351,50 @@ export default function AdminSettingsPage({ onBack }: Props) {
   const [notifications, setNotifications] = useState(true)
   const [announceNotif, setAnnounceNotif] = useState(true)
 
-  // Admin management
-  const isSuper = isSuperAdmin(getStoredUser())
-  const [admins, setAdmins] = useState<ApiEmployee[]>([])
-  const [adminsLoading, setAdminsLoading] = useState(true)
-  const [showAddAdminModal, setShowAddAdminModal] = useState(false)
-  const [deleteAdminId, setDeleteAdminId] = useState<number | null>(null)
-  const [deleteAdminName, setDeleteAdminName] = useState('')
-  const [deletingAdmin, setDeletingAdmin] = useState(false)
+  // Manager management
+  const isLeader = isLeadership(getStoredUser())
+  const [managers, setManagers] = useState<ApiEmployee[]>([])
+  const [managersLoading, setManagersLoading] = useState(true)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [leadership, setLeadership] = useState<ApiEmployee[]>([])
+  const [showAddManagerModal, setShowAddManagerModal] = useState(false)
+  const [editManager, setEditManager] = useState<ApiEmployee | null>(null)
+  const [deleteManagerId, setDeleteManagerId] = useState<number | null>(null)
+  const [deleteManagerName, setDeleteManagerName] = useState('')
+  const [deletingManager, setDeletingManager] = useState(false)
 
-  const fetchAdmins = () => {
-    setAdminsLoading(true)
-    apiFetch<ApiEmployee[]>('/api/admin/admins')
-      .then(data => { if (mountedRef.current) setAdmins(Array.isArray(data) ? data : []) })
-      .catch(() => { if (mountedRef.current) setAdmins([]) })
-      .finally(() => { if (mountedRef.current) setAdminsLoading(false) })
+  const fetchManagers = () => {
+    setManagersLoading(true)
+    apiFetch<ApiEmployee[]>('/api/admin/managers')
+      .then(data => { if (mountedRef.current) setManagers(Array.isArray(data) ? data : []) })
+      .catch(() => { if (mountedRef.current) setManagers([]) })
+      .finally(() => { if (mountedRef.current) setManagersLoading(false) })
   }
 
-  useEffect(() => { if (isSuper) fetchAdmins() }, [])
+  useEffect(() => {
+    if (!isLeader) return
+    fetchManagers()
+    apiFetch<Department[]>('/api/admin/departments')
+      .then(data => { if (mountedRef.current) setDepartments(Array.isArray(data) ? data : []) })
+      .catch(() => {})
+    apiFetch<ApiEmployee[]>('/api/admin/leadership')
+      .then(data => { if (mountedRef.current) setLeadership(Array.isArray(data) ? data : []) })
+      .catch(() => {})
+  }, [])
 
-  async function handleDeleteAdmin(id: number | null) {
+  async function handleDeleteManager(id: number | null) {
     if (!id) return
-    setDeletingAdmin(true)
+    setDeletingManager(true)
     try {
-      await apiFetch(`/api/admin/admins/${id}`, { method: 'DELETE' })
-      showToast('Admin removed', 'success')
-      setDeleteAdminId(null)
-      setDeleteAdminName('')
-      fetchAdmins()
+      await apiFetch(`/api/admin/managers/${id}`, { method: 'DELETE' })
+      showToast('Manager removed', 'success')
+      setDeleteManagerId(null)
+      setDeleteManagerName('')
+      fetchManagers()
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete admin', 'error')
+      showToast(err instanceof Error ? err.message : 'Failed to delete manager', 'error')
     } finally {
-      setDeletingAdmin(false)
+      setDeletingManager(false)
     }
   }
 
@@ -271,7 +499,7 @@ export default function AdminSettingsPage({ onBack }: Props) {
                     <input className="st-input" type="tel" value={phone} readOnly />
                   </div>
                   <div className="st-field">
-                    <label className="st-label">Admin ID</label>
+                    <label className="st-label">ID</label>
                     <input className="st-input" type="text" value={adminId} readOnly />
                   </div>
                 </div>
@@ -303,42 +531,54 @@ export default function AdminSettingsPage({ onBack }: Props) {
         </div>
       </div>
 
-      {/* Admin Management */}
-      {isSuper && (
+      {/* Manager Management */}
+      {isLeader && (
         <div className="card st-card">
           <div className="st-card-body">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>Admin Management</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>Manage administrator accounts for this platform.</div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>Manager Management</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>Manage manager accounts for this platform.</div>
               </div>
-              <button className="cnr-btn-submit" type="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddAdminModal(true)}>
-                <IcoPlus /> Add Admin
+              <button className="cnr-btn-submit" type="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddManagerModal(true)}>
+                <IcoPlus /> Add Manager
               </button>
             </div>
 
-            {adminsLoading ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading admins…</p>
-            ) : admins.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No admins found.</p>
+            {managersLoading ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading managers…</p>
+            ) : managers.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No managers found.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {admins.map(admin => (
-                  <div key={admin.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-secondary, rgba(0,0,0,0.03))' }}>
-                    <div className="emp-avatar" style={{ flexShrink: 0 }}>{initials(admin.name)}</div>
+                {managers.map(manager => (
+                  <div key={manager.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-secondary, rgba(0,0,0,0.03))' }}>
+                    <div className="emp-avatar" style={{ flexShrink: 0 }}>{initials(manager.name)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{admin.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{admin.email}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{manager.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{manager.email}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {manager.department?.name ?? 'No department'} · Reports to {manager.manager?.name ?? '—'}
+                      </div>
                     </div>
-                    {admin.employeeId && (
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, fontFamily: 'monospace' }}>{admin.employeeId}</span>
+                    {manager.employeeId && (
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, fontFamily: 'monospace' }}>{manager.employeeId}</span>
                     )}
                     <button
                       type="button"
-                      onClick={() => { setDeleteAdminId(admin.id); setDeleteAdminName(admin.name) }}
+                      onClick={() => setEditManager(manager)}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 4 }}
+                      aria-label={`Edit ${manager.name}`}
+                      title="Edit manager"
+                    >
+                      <IcoPencil />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteManagerId(manager.id); setDeleteManagerName(manager.name) }}
                       style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', padding: 4 }}
-                      aria-label={`Delete ${admin.name}`}
-                      title="Delete admin"
+                      aria-label={`Delete ${manager.name}`}
+                      title="Delete manager"
                     >
                       <IcoX />
                     </button>
@@ -350,25 +590,40 @@ export default function AdminSettingsPage({ onBack }: Props) {
         </div>
       )}
 
-      {showAddAdminModal && (
-        <AddAdminModal onClose={() => setShowAddAdminModal(false)} onAdded={fetchAdmins} />
+      {showAddManagerModal && (
+        <AddManagerModal
+          onClose={() => setShowAddManagerModal(false)}
+          onAdded={fetchManagers}
+          departments={departments}
+          leadership={leadership}
+        />
       )}
 
-      {deleteAdminId !== null && (
-        <div className="emp-modal-overlay" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }}>
+      {editManager && (
+        <EditManagerModal
+          manager={editManager}
+          onClose={() => setEditManager(null)}
+          onUpdated={(updated) => setManagers(prev => prev.map(m => m.id === editManager.id ? { ...m, ...updated } : m))}
+          departments={departments}
+          leadership={leadership}
+        />
+      )}
+
+      {deleteManagerId !== null && (
+        <div className="emp-modal-overlay" onClick={() => { setDeleteManagerId(null); setDeleteManagerName('') }}>
           <div className="emp-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="emp-modal-header">
-              <span className="emp-modal-title">Remove Admin</span>
-              <button type="button" className="emp-modal-close" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }}><IcoX /></button>
+              <span className="emp-modal-title">Remove Manager</span>
+              <button type="button" className="emp-modal-close" onClick={() => { setDeleteManagerId(null); setDeleteManagerName('') }}><IcoX /></button>
             </div>
             <div className="emp-modal-body">
               <p style={{ margin: '0 0 20px', color: 'var(--text-primary)' }}>
-                Are you sure you want to remove <strong>{deleteAdminName}</strong>? This action cannot be undone.
+                Are you sure you want to remove <strong>{deleteManagerName}</strong>? This action cannot be undone.
               </p>
               <div className="emp-modal-footer">
-                <button type="button" className="cnr-btn-back" onClick={() => { setDeleteAdminId(null); setDeleteAdminName('') }} disabled={deletingAdmin}>Cancel</button>
-                <button type="button" className="cnr-btn-submit" style={{ background: '#ef4444' }} onClick={() => handleDeleteAdmin(deleteAdminId)} disabled={deletingAdmin}>
-                  {deletingAdmin ? 'Removing…' : 'Remove'}
+                <button type="button" className="cnr-btn-back" onClick={() => { setDeleteManagerId(null); setDeleteManagerName('') }} disabled={deletingManager}>Cancel</button>
+                <button type="button" className="cnr-btn-submit" style={{ background: '#ef4444' }} onClick={() => handleDeleteManager(deleteManagerId)} disabled={deletingManager}>
+                  {deletingManager ? 'Removing…' : 'Remove'}
                 </button>
               </div>
             </div>

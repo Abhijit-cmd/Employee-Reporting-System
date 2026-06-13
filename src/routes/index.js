@@ -9,12 +9,16 @@ const targetsController = require("../controllers/admin/targets.controller");
 const announcementController = require("../controllers/admin/announcement.controller");
 const employeeReportController = require("../controllers/employee/report.controller");
 const notifController = require("../controllers/employee/notification.controller");
+const departmentsController = require("../controllers/admin/departments.controller");
+const kpiTemplatesController = require("../controllers/admin/kpiTemplates.controller");
+const adminAppraisalsController = require("../controllers/admin/appraisals.controller");
+const employeeAppraisalController = require("../controllers/employee/appraisal.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const adminMiddleware = require("../middleware/admin.middleware");
-const superAdminMiddleware = require("../middleware/superAdmin.middleware");
 const employeeMiddleware = require("../middleware/employee.middleware");
 const loginLimiter = require("../middleware/loginLimiter.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -64,9 +68,11 @@ adminRouter.get("/employees", employeesController.getAllEmployees);
 adminRouter.post("/employees", employeesController.createEmployee);
 adminRouter.put("/employees/:id", employeesController.updateEmployee);
 adminRouter.delete("/employees/:id", employeesController.deleteEmployee);
-adminRouter.get("/admins", superAdminMiddleware, employeesController.getAdmins);
-adminRouter.post("/admins", superAdminMiddleware, employeesController.createAdmin);
-adminRouter.delete("/admins/:id", superAdminMiddleware, employeesController.deleteAdmin);
+adminRouter.get("/managers", requirePermission("managers.manage"), employeesController.getManagers);
+adminRouter.post("/managers", requirePermission("managers.manage"), employeesController.createManager);
+adminRouter.put("/managers/:id", requirePermission("managers.manage"), employeesController.updateManager);
+adminRouter.delete("/managers/:id", requirePermission("managers.manage"), employeesController.deleteManager);
+adminRouter.get("/leadership", requirePermission("managers.manage"), employeesController.getLeadership);
 adminRouter.get("/targets", targetsController.getTargets);
 adminRouter.post("/targets", targetsController.createTarget);
 adminRouter.get("/analytics", dashboardController.getAnalytics);
@@ -83,6 +89,26 @@ adminRouter.put("/reports/reviewed/:reportId", adminReportsController.markReview
 adminRouter.get("/reports/:id", adminReportsController.getReportById);
 adminRouter.get("/reports/:id/download", adminReportsController.downloadReport);
 
+// ── DEPARTMENTS ───────────────────────────────────────────────────────────────
+adminRouter.get("/departments", departmentsController.getDepartments);
+adminRouter.post("/departments", requirePermission("departments.manage"), departmentsController.createDepartment);
+adminRouter.put("/departments/:id", requirePermission("departments.manage"), departmentsController.updateDepartment);
+adminRouter.delete("/departments/:id", requirePermission("departments.manage"), departmentsController.deleteDepartment);
+
+// ── KPI TEMPLATES ─────────────────────────────────────────────────────────────
+adminRouter.get("/kpi-templates", kpiTemplatesController.getKpiTemplates);
+adminRouter.post("/kpi-templates", requirePermission("kpi_templates.manage"), kpiTemplatesController.createKpiTemplate);
+adminRouter.put("/kpi-templates/:id", requirePermission("kpi_templates.manage"), kpiTemplatesController.updateKpiTemplate);
+adminRouter.delete("/kpi-templates/:id", requirePermission("kpi_templates.manage"), kpiTemplatesController.deleteKpiTemplate);
+
+// ── APPRAISALS (rater side) ───────────────────────────────────────────────────
+// IMPORTANT: specific routes must come BEFORE the /appraisals/:id parameterised route
+adminRouter.get("/appraisals/raisable", adminAppraisalsController.getRaisableUsers);
+adminRouter.get("/appraisals/raised", adminAppraisalsController.getRaisedAppraisals);
+adminRouter.get("/appraisals/kpi-templates/:userId", adminAppraisalsController.getKpiTemplatesForUser);
+adminRouter.post("/appraisals", adminAppraisalsController.raiseAppraisal);
+adminRouter.get("/appraisals/:id", adminAppraisalsController.getAppraisalById);
+
 // ── ANNOUNCEMENTS ─────────────────────────────────────────────────────────────
 const announcementsRouter = express.Router();
 announcementsRouter.use(authMiddleware, apiLimiter);
@@ -98,6 +124,15 @@ notificationsRouter.use(authMiddleware, apiLimiter);
 notificationsRouter.get("/", notifController.getNotifications);
 notificationsRouter.patch("/read-all", notifController.markAllRead);
 
+// ── APPRAISALS (raisee side) ──────────────────────────────────────────────────
+const appraisalsRouter = express.Router();
+appraisalsRouter.use(authMiddleware, apiLimiter);
+
+appraisalsRouter.get("/my", employeeAppraisalController.getMyAppraisals);
+appraisalsRouter.get("/my/:id", employeeAppraisalController.getMyAppraisalById);
+appraisalsRouter.patch("/my/:id/acknowledge", employeeAppraisalController.acknowledgeAppraisal);
+appraisalsRouter.patch("/my/:id/self-assessment", employeeAppraisalController.updateMySelfAssessment);
+
 // ── Mount ─────────────────────────────────────────────────────────────────────
 const router = express.Router();
 router.use("/auth", authRouter);
@@ -105,5 +140,6 @@ router.use("/reports", reportsRouter);
 router.use("/admin/announcements", announcementsRouter);
 router.use("/admin", adminRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/appraisals", appraisalsRouter);
 
 module.exports = router;

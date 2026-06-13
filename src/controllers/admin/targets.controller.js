@@ -1,4 +1,5 @@
 const prisma = require("../../prisma/prismaClient");
+const { teamFilter } = require("../../utils/scope");
 
 function toNumber(v) {
   const n = Number(v);
@@ -7,7 +8,14 @@ function toNumber(v) {
 
 exports.getTargets = async (req, res) => {
   try {
+    const { employeeId, year } = req.query;
+
+    const where = { employee: teamFilter(req.user) };
+    if (employeeId) where.userId = Number(employeeId);
+    if (year) where.targetYear = Number(year);
+
     const targets = await prisma.target.findMany({
+      where,
       include: {
         employee: {
           select: { id: true, name: true, employeeId: true },
@@ -38,7 +46,7 @@ exports.createTarget = async (req, res) => {
       return res.status(400).json({ message: "Target year is invalid" });
     }
 
-    if (!targetMonth) return res.status(400).json({ message: "Target month is required" });
+    const month = targetMonth ? String(targetMonth) : null;
 
     const employeePk = toNumber(employeeId);
     const employee =
@@ -48,13 +56,17 @@ exports.createTarget = async (req, res) => {
 
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
+    if (req.user.role === "Manager" && employee.managerId !== req.user.id) {
+      return res.status(403).json({ message: "You can only assign targets to your own employees" });
+    }
+
     const created = await prisma.target.create({
       data: {
         userId: employee.id,
         targetTitle: String(targetTitle),
         description: description ? String(description) : null,
         targetValue: tv,
-        targetMonth: String(targetMonth),
+        targetMonth: month,
         targetYear: Math.trunc(year),
       },
       include: {
@@ -66,13 +78,15 @@ exports.createTarget = async (req, res) => {
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December",
     ];
-    const monthName = monthNames[parseInt(String(targetMonth), 10) - 1] ?? targetMonth;
+    const period = month
+      ? `${monthNames[parseInt(month, 10) - 1] ?? month} ${Math.trunc(year)}`
+      : `${Math.trunc(year)}`;
 
     await prisma.notification.create({
       data: {
         userId: employee.id,
         title: "New Target Assigned",
-        message: `Admin has assigned you a new target: "${targetTitle}" for ${monthName} ${Math.trunc(year)}.`,
+        message: `Admin has assigned you a new target: "${targetTitle}" for ${period}.`,
         notificationType: "target",
       },
     }).catch(() => {});

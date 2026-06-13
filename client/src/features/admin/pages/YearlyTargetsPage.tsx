@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch } from '../../../lib/api'
 import { showToast } from '../../../lib/feedback'
+import { getStoredUser, isLeadership } from '../../../lib/auth'
 import type { Target, ApiEmployee } from '../../../types'
 
 type FormState = {
@@ -8,28 +9,18 @@ type FormState = {
   title: string
   description: string
   targetValue: string
-  month: string
+  year: string
 }
 
-const EMPTY_FORM: FormState = { userId: '', title: '', description: '', targetValue: '', month: '' }
+const currentYear = new Date().getFullYear()
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+const EMPTY_FORM: FormState = { userId: '', title: '', description: '', targetValue: '', year: String(currentYear) }
 
-function monthLabel(m: string): string {
-  if (!m) return ''
-  if (/^\d{2}$/.test(m)) {
-    const idx = parseInt(m, 10)
-    if (idx >= 1 && idx <= 12) return MONTH_NAMES[idx - 1]
-  }
-  return m
-}
-
-export default function TargetsPage() {
+export default function YearlyTargetsPage() {
+  const isLeader = isLeadership(getStoredUser())
   const [targets, setTargets] = useState<Target[]>([])
   const [employees, setEmployees] = useState<ApiEmployee[]>([])
+  const [managers, setManagers] = useState<ApiEmployee[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -40,13 +31,15 @@ export default function TargetsPage() {
   async function load() {
     setLoading(true)
     try {
-      const [targetsData, empData] = await Promise.all([
+      const [targetsData, empData, mgrData] = await Promise.all([
         apiFetch<Target[]>('/api/admin/targets'),
         apiFetch<ApiEmployee[]>('/api/admin/employees'),
+        isLeader ? apiFetch<ApiEmployee[]>('/api/admin/managers') : Promise.resolve([]),
       ])
       if (!mountedRef.current) return
       setTargets(Array.isArray(targetsData) ? targetsData : [])
       setEmployees(Array.isArray(empData) ? empData : [])
+      setManagers(Array.isArray(mgrData) ? mgrData : [])
     } catch (err) {
       if (!mountedRef.current) return
       showToast(err instanceof Error ? err.message : 'Failed to load', 'error')
@@ -59,7 +52,7 @@ export default function TargetsPage() {
 
   const rows = useMemo(() => {
     return targets
-      .filter((t) => t.targetMonth !== null)
+      .filter((t) => t.targetMonth === null)
       .map((t) => {
         const targetValue = Number(t.targetValue) || 0
         const achievedValue = Number(t.achievedValue) || 0
@@ -73,13 +66,10 @@ export default function TargetsPage() {
     if (submitting) return
     if (!form.userId) { showToast('Please select an employee', 'error'); return }
     if (!form.title.trim()) { showToast('Title is required', 'error'); return }
-    if (!form.month) { showToast('Month is required', 'error'); return }
     const tv = Number(form.targetValue)
     if (!Number.isFinite(tv) || tv <= 0) { showToast('Target Value must be a positive number', 'error'); return }
-
-    const [yearStr, monthStr] = form.month.split('-')
-    const year = Number(yearStr)
-    if (!Number.isFinite(year) || !monthStr) { showToast('Month is invalid', 'error'); return }
+    const year = Number(form.year)
+    if (!Number.isFinite(year) || year < 2000) { showToast('Enter a valid year', 'error'); return }
 
     setSubmitting(true)
     try {
@@ -90,11 +80,10 @@ export default function TargetsPage() {
           targetTitle: form.title.trim(),
           description: form.description.trim() || null,
           targetValue: tv,
-          targetMonth: monthStr,
           targetYear: year,
         }),
       })
-      showToast('Target created', 'success')
+      showToast('Yearly target created', 'success')
       setShowForm(false)
       setForm(EMPTY_FORM)
       await load()
@@ -105,15 +94,15 @@ export default function TargetsPage() {
     }
   }
 
-  const selectedEmp = employees.find((e) => String(e.id) === form.userId)
+  const selectedEmp = [...managers, ...employees].find((e) => String(e.id) === form.userId)
 
   return (
     <main className="page-content">
       <div className="card tg-card">
         <div className="tg-topbar">
-          <div className="emp-page-heading">Targets</div>
+          <div className="emp-page-heading">Yearly Targets</div>
           <button className="tg-add-btn" type="button" onClick={() => setShowForm((s) => !s)}>
-            Add Target
+            Add Yearly Target
           </button>
         </div>
 
@@ -123,7 +112,7 @@ export default function TargetsPage() {
 
               {/* Employee dropdown */}
               <div className="st-field">
-                <label className="st-label">Employee</label>
+                <label className="st-label">Employee / Manager</label>
                 <div className="emp-select-wrap" style={{ position: 'relative' }}>
                   <select
                     className="st-input"
@@ -131,12 +120,23 @@ export default function TargetsPage() {
                     onChange={(e) => setForm((p) => ({ ...p, userId: e.target.value }))}
                     style={{ appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
                   >
-                    <option value="">— Select employee —</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={String(emp.id)}>
-                        {emp.name} ({emp.employeeId})
-                      </option>
-                    ))}
+                    <option value="">— Select employee or manager —</option>
+                    {managers.length > 0 && (
+                      <optgroup label="Managers">
+                        {managers.map((mgr) => (
+                          <option key={mgr.id} value={String(mgr.id)}>
+                            {mgr.name} ({mgr.employeeId})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Employees">
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={String(emp.id)}>
+                          {emp.name} ({emp.employeeId})
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                     style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9ca3af' }}>
@@ -157,7 +157,7 @@ export default function TargetsPage() {
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. Increase customer registrations"
+                  placeholder="e.g. Annual Sales Revenue"
                 />
               </div>
 
@@ -181,18 +181,18 @@ export default function TargetsPage() {
                   onChange={(e) => setForm((p) => ({ ...p, targetValue: e.target.value }))}
                   min={0.01}
                   step="0.01"
-                  placeholder="e.g. 100"
+                  placeholder="e.g. 1000000"
                 />
               </div>
 
               <div className="st-field">
-                <label className="st-label">Month</label>
+                <label className="st-label">Year</label>
                 <input
                   className="st-input"
-                  type="month"
-                  value={form.month}
-                  onChange={(e) => setForm((p) => ({ ...p, month: e.target.value }))}
-                  onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                  type="number"
+                  min={2000}
+                  value={form.year}
+                  onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
                 />
               </div>
             </div>
@@ -209,18 +209,18 @@ export default function TargetsPage() {
         )}
 
         {loading ? (
-          <p style={{ padding: 16, color: 'var(--text-muted)' }}>Loading targets…</p>
+          <p style={{ padding: 16, color: 'var(--text-muted)' }}>Loading yearly targets…</p>
         ) : (
           <div className="tg-table-wrap">
             <table className="reports-table tg-table">
               <thead>
                 <tr>
-                  <th>Employee</th>
+                  <th>Employee / Manager</th>
                   <th>Title</th>
                   <th>Description</th>
                   <th>Target Value</th>
                   <th>Achieved Value</th>
-                  <th>Month + Year</th>
+                  <th>Year</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -228,7 +228,7 @@ export default function TargetsPage() {
                 {rows.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>
-                      No targets found.
+                      No yearly targets found.
                     </td>
                   </tr>
                 ) : (
@@ -245,9 +245,7 @@ export default function TargetsPage() {
                         {t.achievedValue}{' '}
                         <span className="tg-progress">({Math.round((Number.isFinite(progress) ? progress : 0) * 100)}%)</span>
                       </td>
-                      <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                        {monthLabel(t.targetMonth ?? '')} {t.targetYear}
-                      </td>
+                      <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{t.targetYear}</td>
                       <td>
                         <span className={`status-badge ${achieved ? 'tg-achieved' : 'tg-pending'}`}>
                           {achieved ? 'Achieved' : 'Pending'}

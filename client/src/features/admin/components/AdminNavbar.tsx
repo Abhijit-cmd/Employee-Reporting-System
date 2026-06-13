@@ -151,6 +151,10 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   analytics: { title: 'Analytics', sub: 'Reports · Employees · Targets overview' },
   announcements: { title: 'Announcements', sub: 'Manage company-wide announcements' },
   targets: { title: 'Targets', sub: 'Set and track employee targets' },
+  'leadership-settings': { title: 'Org Settings', sub: 'Manage departments and KPI templates' },
+  'raise-appraisal': { title: 'Raise Appraisal', sub: 'Raise a performance appraisal' },
+  'appraisals-raised': { title: 'Appraisals Raised', sub: 'Appraisals you have raised for your team' },
+  'my-appraisals': { title: 'My Appraisals', sub: 'Appraisals raised for you by Leadership' },
 }
 
 export default function AdminNavbar({
@@ -162,7 +166,7 @@ export default function AdminNavbar({
 }: Props) {
   const user = getStoredUser()
   const meta = PAGE_TITLES[page] ?? PAGE_TITLES.dashboard
-  const displayName = user?.name ?? 'Admin'
+  const displayName = user?.name ?? 'User'
 
   return (
     <header className="navbar">
@@ -209,7 +213,7 @@ export default function AdminNavbar({
         <div className="avatar">{initials(displayName)}</div>
         <div className="profile-info">
           <strong>{displayName}</strong>
-          <span>{typeof user?.role === 'string' ? user.role : user?.role?.roleName ?? 'Admin'}</span>
+          <span>{typeof user?.role === 'string' ? user.role : user?.role?.roleName ?? 'Manager'}</span>
         </div>
         <IconChevronDown className="profile-chevron" />
       </button>

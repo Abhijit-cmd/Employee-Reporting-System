@@ -1,14 +1,20 @@
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]
+
+export function monthLabel(m: string | number): string {
+  const idx = typeof m === 'number' ? m : parseInt(m, 10)
+  return (idx >= 1 && idx <= 12) ? MONTH_NAMES[idx - 1] : String(m)
+}
+
 export function formatMmyyyy(mmyyyy: string): string {
   if (!mmyyyy || mmyyyy.length !== 6) return mmyyyy
   const month = mmyyyy.slice(0, 2)
   const year = mmyyyy.slice(2)
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
   const monthIndex = Number(month) - 1
   if (monthIndex >= 0 && monthIndex <= 11) {
-    return `${monthNames[monthIndex]} ${year}`
+    return `${MONTH_NAMES[monthIndex]} ${year}`
   }
   return mmyyyy
 }

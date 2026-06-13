@@ -3,7 +3,8 @@ import { apiFetch } from '../../../lib/api'
 import { downloadWithToken } from '../../../lib/download'
 import { showToast } from '../../../lib/feedback'
 import { formatMmyyyy, initials } from '../../../lib/utils'
-import type { ApiEmployee } from '../../../types'
+import { getStoredUser, isLeadership } from '../../../lib/auth'
+import type { ApiEmployee, Department } from '../../../types'
 
 interface Props {
   onNavigate: (page: string) => void
@@ -103,12 +104,64 @@ function PasswordField({
   )
 }
 
+// ── Wrapped select for modals ─────────────────────────────────────────────────
+function ModalSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder: string
+}) {
+  return (
+    <div className="emp-modal-field">
+      <label className="emp-modal-label">{label}</label>
+      <div className="emp-select-wrap" style={{ position: 'relative' }}>
+        <select
+          className="emp-modal-input"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{ appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+        >
+          <option value="">{placeholder}</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9ca3af' }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
 // ── Add Employee Modal ────────────────────────────────────────────────────────
-function AddEmployeeModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+function AddEmployeeModal({
+  onClose,
+  onAdded,
+  departments,
+  managers,
+  isLeader,
+}: {
+  onClose: () => void
+  onAdded: () => void
+  departments: Department[]
+  managers: ApiEmployee[]
+  isLeader: boolean
+}) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [departmentId, setDepartmentId] = useState('')
+  const [managerId, setManagerId] = useState('')
+  const [designation, setDesignation] = useState('')
+  const [location, setLocation] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -122,9 +175,19 @@ function AddEmployeeModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
     }
     setSubmitting(true)
     try {
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+        departmentId: departmentId ? Number(departmentId) : null,
+        designation: designation.trim() || null,
+        location: location.trim() || null,
+      }
+      if (isLeader) body.managerId = managerId ? Number(managerId) : null
       await apiFetch('/api/admin/employees', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), password }),
+        body: JSON.stringify(body),
       })
       showToast('Employee added successfully', 'success')
       onAdded()
@@ -157,6 +220,30 @@ function AddEmployeeModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             <input className="emp-modal-input" type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
           <PasswordField label="Password *" value={password} onChange={setPassword} placeholder="Initial password" />
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Designation</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Sales Executive" value={designation} onChange={e => setDesignation(e.target.value)} />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Location/Region</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Mumbai" value={location} onChange={e => setLocation(e.target.value)} />
+          </div>
+          <ModalSelect
+            label="Department"
+            value={departmentId}
+            onChange={setDepartmentId}
+            placeholder="— No department —"
+            options={departments.map(d => ({ value: String(d.id), label: d.name }))}
+          />
+          {isLeader && (
+            <ModalSelect
+              label="Manager"
+              value={managerId}
+              onChange={setManagerId}
+              placeholder="— No manager —"
+              options={managers.map(m => ({ value: String(m.id), label: `${m.name} (${m.employeeId})` }))}
+            />
+          )}
           <div className="emp-modal-footer">
             <button type="button" className="cnr-btn-back" onClick={onClose} disabled={submitting}>Cancel</button>
             <button type="submit" className="cnr-btn-submit" disabled={submitting}>{submitting ? 'Adding…' : 'Add Employee'}</button>
@@ -172,15 +259,25 @@ function EditEmployeeModal({
   employee,
   onClose,
   onUpdated,
+  departments,
+  managers,
+  isLeader,
 }: {
   employee: ApiEmployee
   onClose: () => void
   onUpdated: (updated: Partial<ApiEmployee>) => void
+  departments: Department[]
+  managers: ApiEmployee[]
+  isLeader: boolean
 }) {
   const [name,     setName]     = useState(employee.name)
   const [email,    setEmail]    = useState(employee.email)
   const [phone,    setPhone]    = useState(employee.phone ?? '')
   const [password, setPassword] = useState('')
+  const [departmentId, setDepartmentId] = useState(employee.departmentId ? String(employee.departmentId) : '')
+  const [managerId, setManagerId] = useState(employee.managerId ? String(employee.managerId) : '')
+  const [designation, setDesignation] = useState(employee.designation ?? '')
+  const [location, setLocation] = useState(employee.location ?? '')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -194,10 +291,32 @@ function EditEmployeeModal({
     }
     setSubmitting(true)
     try {
-      const body: Record<string, string> = { name: name.trim(), email: email.trim(), phone: phone.trim() }
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        departmentId: departmentId ? Number(departmentId) : null,
+        designation: designation.trim() || null,
+        location: location.trim() || null,
+      }
       if (password) body.password = password
+      if (isLeader) body.managerId = managerId ? Number(managerId) : null
       await apiFetch(`/api/admin/employees/${employee.id}`, { method: 'PUT', body: JSON.stringify(body) })
-      onUpdated({ name: name.trim(), email: email.trim(), phone: phone.trim() || null })
+      const updatedDept = departmentId ? departments.find(d => String(d.id) === departmentId) : null
+      const updatedManager = isLeader ? (managerId ? managers.find(m => String(m.id) === managerId) : null) : employee.manager
+      onUpdated({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        departmentId: departmentId ? Number(departmentId) : null,
+        department: updatedDept ? { id: updatedDept.id, name: updatedDept.name } : null,
+        designation: designation.trim() || null,
+        location: location.trim() || null,
+        ...(isLeader ? {
+          managerId: managerId ? Number(managerId) : null,
+          manager: updatedManager ? { id: updatedManager.id, name: updatedManager.name, employeeId: updatedManager.employeeId } : null,
+        } : {}),
+      })
       showToast('Employee updated successfully', 'success')
       onClose()
     } catch (err) {
@@ -241,6 +360,30 @@ function EditEmployeeModal({
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: -8, paddingLeft: 2 }}>
             Only fill in if you want to reset this employee's password.
           </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Designation</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Sales Executive" value={designation} onChange={e => setDesignation(e.target.value)} />
+          </div>
+          <div className="emp-modal-field">
+            <label className="emp-modal-label">Location/Region</label>
+            <input className="emp-modal-input" type="text" placeholder="e.g. Mumbai" value={location} onChange={e => setLocation(e.target.value)} />
+          </div>
+          <ModalSelect
+            label="Department"
+            value={departmentId}
+            onChange={setDepartmentId}
+            placeholder="— No department —"
+            options={departments.map(d => ({ value: String(d.id), label: d.name }))}
+          />
+          {isLeader && (
+            <ModalSelect
+              label="Manager"
+              value={managerId}
+              onChange={setManagerId}
+              placeholder="— No manager —"
+              options={managers.map(m => ({ value: String(m.id), label: `${m.name} (${m.employeeId})` }))}
+            />
+          )}
           <div className="emp-modal-footer">
             <button type="button" className="cnr-btn-back" onClick={onClose} disabled={submitting}>Cancel</button>
             <button type="submit" className="cnr-btn-submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save Changes'}</button>
@@ -396,10 +539,13 @@ function EmployeeReportsDrawer({ employeeId, onClose }: { employeeId: number; on
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-const columns = ['Employee ID', 'Name', 'Email', 'Status', 'Joined On', 'Actions']
+const columns = ['Employee ID', 'Name', 'Email', 'Department', 'Manager', 'Status', 'Joined On', 'Actions']
 
 export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props) {
+  const isLeader = isLeadership(getStoredUser())
   const [employees, setEmployees] = useState<ApiEmployee[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [managers, setManagers] = useState<ApiEmployee[]>([])
   const [search, setSearch] = useState(initialSearch)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -415,6 +561,17 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
   useEffect(() => () => { mountedRef.current = false }, [])
 
   useEffect(() => { setSearch(initialSearch) }, [initialSearch])
+
+  useEffect(() => {
+    apiFetch<Department[]>('/api/admin/departments')
+      .then(data => { if (mountedRef.current) setDepartments(Array.isArray(data) ? data : []) })
+      .catch(() => {})
+    if (isLeader) {
+      apiFetch<ApiEmployee[]>('/api/admin/managers')
+        .then(data => { if (mountedRef.current) setManagers(Array.isArray(data) ? data : []) })
+        .catch(() => {})
+    }
+  }, [isLeader])
 
   const fetchEmployees = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
@@ -537,6 +694,8 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
                     </div>
                   </td>
                   <td style={{ color: 'var(--text-muted)' }}>{emp.email}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{emp.department?.name ?? '—'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{emp.manager?.name ?? '—'}</td>
                   <td>
                     <span className={`status-badge ${emp.status === 'active' ? 'active' : 'inactive'}`}>
                       {emp.status === 'active' ? 'Active' : 'Inactive'}
@@ -593,7 +752,15 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
       </div>
 
       {/* Add modal */}
-      {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onAdded={fetchEmployees} />}
+      {showAddModal && (
+        <AddEmployeeModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={fetchEmployees}
+          departments={departments}
+          managers={managers}
+          isLeader={isLeader}
+        />
+      )}
 
       {/* Edit modal */}
       {editEmployee && (
@@ -601,6 +768,9 @@ export default function EmployeesPage({ onNavigate, initialSearch = '' }: Props)
           employee={editEmployee}
           onClose={() => setEditEmployee(null)}
           onUpdated={patch => handleUpdated(editEmployee.id, patch)}
+          departments={departments}
+          managers={managers}
+          isLeader={isLeader}
         />
       )}
 

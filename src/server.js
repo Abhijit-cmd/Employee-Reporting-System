@@ -120,7 +120,16 @@ async function ensureReferenceData() {
       skipDuplicates: true,
     });
     await prisma.role.createMany({
-      data: [{ roleName: "Admin" }, { roleName: "Employee" }],
+      data: [{ roleName: "Manager" }, { roleName: "Employee" }],
+      skipDuplicates: true,
+    });
+    await prisma.department.createMany({
+      data: [
+        { name: "Sales" },
+        { name: "IT/Software Dev" },
+        { name: "Administration" },
+        { name: "Finance" },
+      ],
       skipDuplicates: true,
     });
   } catch (e) {

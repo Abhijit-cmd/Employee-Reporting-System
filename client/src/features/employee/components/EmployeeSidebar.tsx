@@ -24,7 +24,7 @@ const navItems = [
   { id: 'achievements',   label: 'Achievements',      icon: 'award' },
   { id: 'create-report',  label: 'Create New Report', icon: 'plus' },
   { id: 'my-targets',     label: 'My Targets',        icon: 'target' },
-  { id: 'appraisal',      label: 'Yearly Report',     icon: 'calendar' },
+  { id: 'my-appraisals',  label: 'My Appraisals',     icon: 'calendar' },
   { id: 'notifications',  label: 'Notifications',     icon: 'bell',     badge: 'pending' as const },
   { id: 'announcements',  label: 'Announcements',     icon: 'announce', badge: 'announce' as const },
   { id: 'settings',       label: 'Profile',           icon: 'settings' },

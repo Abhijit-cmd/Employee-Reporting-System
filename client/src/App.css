@@ -2892,6 +2892,24 @@ svg {
 .tg-achieved { background: var(--primary-light); color: var(--primary); }
 .tg-pending { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
+.appraisal-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.appraisal-sidebar {
+  position: sticky;
+  top: 16px;
+  padding-bottom: 8px;
+}
+
+@media (max-width: 1024px) {
+  .appraisal-layout { grid-template-columns: 1fr; }
+  .appraisal-sidebar { position: static; }
+}
+
 .rp-action-btn {
   width: 30px;
   height: 30px;

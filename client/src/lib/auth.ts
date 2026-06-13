@@ -100,15 +100,15 @@ export function isAdmin(user: any): boolean {
     ? user.role
     : user?.role?.roleName ?? ''
   const r = role.toLowerCase()
-  return r === 'admin' || r === 'superadmin'
+  return r === 'manager' || r === 'leadership'
 }
 
-export function isSuperAdmin(user: any): boolean {
+export function isLeadership(user: any): boolean {
   if (!user) return false
   const role = typeof user?.role === 'string'
     ? user.role
     : user?.role?.roleName ?? ''
-  return role.toLowerCase() === 'superadmin'
+  return role.toLowerCase() === 'leadership'
 }
 
 export function isEmployee(user: any): boolean {

@@ -152,7 +152,7 @@ function AnnouncementCard({
         </div>
         <p className="ann-item-text">{item.body}</p>
         <div className="ann-item-meta">
-          Posted by <strong>{item.author?.name ?? 'Admin'}</strong>
+          Posted by <strong>{item.author?.name ?? 'Manager'}</strong>
         </div>
       </div>
       <button

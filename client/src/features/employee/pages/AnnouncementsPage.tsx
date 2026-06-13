@@ -73,7 +73,7 @@ export default function AnnouncementsPage() {
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{a.body}</p>
                 <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-                  Posted by <strong>{a.author?.name ?? 'Admin'}</strong>
+                  Posted by <strong>{a.author?.name ?? 'Manager'}</strong>
                 </div>
               </div>
             ))}

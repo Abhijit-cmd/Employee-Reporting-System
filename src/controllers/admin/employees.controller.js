@@ -1,9 +1,41 @@
 const prisma = require("../../prisma/prismaClient");
 const bcrypt = require("bcrypt");
+const { teamFilter } = require("../../utils/scope");
+
+// Returns { provided, value, error } — provided=false means the field was not sent at all,
+// provided=true with value=null means "unset this field".
+async function resolveDepartmentId(departmentId) {
+  if (departmentId === undefined) return { provided: false };
+  if (departmentId === null || departmentId === "") return { provided: true, value: null };
+
+  const id = Number(departmentId);
+  if (isNaN(id)) return { error: "Invalid department" };
+
+  const department = await prisma.department.findUnique({ where: { id } });
+  if (!department) return { error: "Department not found" };
+
+  return { provided: true, value: id };
+}
+
+async function resolveManagerId(managerId) {
+  if (managerId === undefined) return { provided: false };
+  if (managerId === null || managerId === "") return { provided: true, value: null };
+
+  const id = Number(managerId);
+  if (isNaN(id)) return { error: "Invalid manager" };
+
+  const manager = await prisma.user.findUnique({ where: { id }, include: { role: true } });
+  if (!manager) return { error: "Manager not found" };
+  if (!["Manager", "Leadership"].includes(manager.role?.roleName)) {
+    return { error: "Selected user is not a Manager or Leadership account" };
+  }
+
+  return { provided: true, value: id };
+}
 
 exports.createEmployee = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password, departmentId, managerId, designation, location } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
     if (!email?.trim()) return res.status(400).json({ message: "Email is required" });
@@ -24,6 +56,18 @@ exports.createEmployee = async (req, res) => {
     const employeeRole = await prisma.role.findFirst({ where: { roleName: "Employee" } });
     if (!employeeRole) return res.status(500).json({ message: "Employee role not found" });
 
+    const deptResult = await resolveDepartmentId(departmentId);
+    if (deptResult.error) return res.status(400).json({ message: deptResult.error });
+
+    // Employees created by a Manager are automatically assigned to that Manager.
+    let managerResult;
+    if (req.user.role === "Manager") {
+      managerResult = { provided: true, value: req.user.id };
+    } else {
+      managerResult = await resolveManagerId(managerId);
+      if (managerResult.error) return res.status(400).json({ message: managerResult.error });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.$transaction(async (tx) => {
@@ -33,7 +77,11 @@ exports.createEmployee = async (req, res) => {
           email: email.trim().toLowerCase(),
           phone: phone?.trim() || "",
           password: hashedPassword,
-          role: { connect: { id: employeeRole.id } },
+          roleId: employeeRole.id,
+          departmentId: deptResult.provided ? deptResult.value : undefined,
+          managerId: managerResult.provided ? managerResult.value : undefined,
+          designation: designation?.trim() || null,
+          location: location?.trim() || null,
         },
       });
       const empCount = await tx.user.count({ where: { role: { roleName: "Employee" } } });
@@ -57,6 +105,7 @@ exports.getAllEmployees = async (req, res) => {
 
     const whereClause = {
       role: { roleName: "Employee" },
+      ...teamFilter(req.user),
     };
 
     // MySQL does not support mode:'insensitive' — rely on DB collation
@@ -70,7 +119,11 @@ exports.getAllEmployees = async (req, res) => {
 
     const employees = await prisma.user.findMany({
       where: whereClause,
-      include: { role: true },
+      include: {
+        role: true,
+        department: true,
+        manager: { select: { id: true, name: true, employeeId: true } },
+      },
     });
 
     const safeEmployees = employees.map((employee) => ({
@@ -82,6 +135,10 @@ exports.getAllEmployees = async (req, res) => {
       status: employee.status,
       createdAt: employee.createdAt,
       role: employee.role?.roleName || "Unknown",
+      departmentId: employee.departmentId,
+      managerId: employee.managerId,
+      department: employee.department ? { id: employee.department.id, name: employee.department.name } : null,
+      manager: employee.manager ? { id: employee.manager.id, name: employee.manager.name, employeeId: employee.manager.employeeId } : null,
     }));
 
     res.status(200).json(safeEmployees);
@@ -96,11 +153,15 @@ exports.updateEmployee = async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid employee ID" });
 
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password, departmentId, managerId, designation, location } = req.body;
 
     const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
     if (!user) return res.status(404).json({ message: "Employee not found" });
     if (user.role?.roleName !== "Employee") return res.status(403).json({ message: "Can only edit employee accounts" });
+
+    if (req.user.role === "Manager" && user.managerId !== req.user.id) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
 
     const updateData = {};
 
@@ -123,12 +184,34 @@ exports.updateEmployee = async (req, res) => {
       updateData.phone = phone.trim() || null;
     }
 
+    if (designation !== undefined) {
+      updateData.designation = designation?.trim() || null;
+    }
+
+    if (location !== undefined) {
+      updateData.location = location?.trim() || null;
+    }
+
     if (password !== undefined && password.trim()) {
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
       if (!passwordRegex.test(password)) {
         return res.status(400).json({ message: "Password must be at least 8 characters with uppercase, lowercase and a number" });
       }
       updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    const deptResult = await resolveDepartmentId(departmentId);
+    if (deptResult.error) return res.status(400).json({ message: deptResult.error });
+    if (deptResult.provided) updateData.departmentId = deptResult.value;
+
+    if (req.user.role === "Manager") {
+      if (managerId !== undefined) {
+        return res.status(403).json({ message: "Managers cannot reassign an employee's manager" });
+      }
+    } else {
+      const managerResult = await resolveManagerId(managerId);
+      if (managerResult.error) return res.status(400).json({ message: managerResult.error });
+      if (managerResult.provided) updateData.managerId = managerResult.value;
     }
 
     const updated = await prisma.user.update({
@@ -144,33 +227,56 @@ exports.updateEmployee = async (req, res) => {
   }
 };
 
-exports.getAdmins = async (req, res) => {
+exports.getManagers = async (req, res) => {
   try {
-    const admins = await prisma.user.findMany({
-      where: { role: { roleName: "Admin" } },
+    const managers = await prisma.user.findMany({
+      where: { role: { roleName: "Manager" } },
+      include: {
+        department: true,
+        manager: { select: { id: true, name: true, employeeId: true } },
+      },
       orderBy: { createdAt: "asc" },
     });
 
-    const safeAdmins = admins.map((admin) => ({
-      id: admin.id,
-      employeeId: admin.employeeId,
-      name: admin.name,
-      email: admin.email,
-      phone: admin.phone,
-      status: admin.status,
-      createdAt: admin.createdAt,
+    const safeManagers = managers.map((manager) => ({
+      id: manager.id,
+      employeeId: manager.employeeId,
+      name: manager.name,
+      email: manager.email,
+      phone: manager.phone,
+      status: manager.status,
+      createdAt: manager.createdAt,
+      departmentId: manager.departmentId,
+      managerId: manager.managerId,
+      department: manager.department ? { id: manager.department.id, name: manager.department.name } : null,
+      manager: manager.manager ? { id: manager.manager.id, name: manager.manager.name, employeeId: manager.manager.employeeId } : null,
     }));
 
-    res.status(200).json(safeAdmins);
+    res.status(200).json(safeManagers);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to fetch admins" });
+    res.status(500).json({ message: "Failed to fetch managers" });
   }
 };
 
-exports.createAdmin = async (req, res) => {
+exports.getLeadership = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const leadership = await prisma.user.findMany({
+      where: { role: { roleName: "Leadership" } },
+      select: { id: true, name: true, employeeId: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    res.status(200).json(leadership);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch leadership accounts" });
+  }
+};
+
+exports.createManager = async (req, res) => {
+  try {
+    const { name, email, phone, password, departmentId, managerId, designation, location } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
     if (!email?.trim()) return res.status(400).json({ message: "Email is required" });
@@ -188,8 +294,14 @@ exports.createAdmin = async (req, res) => {
     const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     if (existing) return res.status(409).json({ message: "An account with this email already exists" });
 
-    const adminRole = await prisma.role.findFirst({ where: { roleName: "Admin" } });
-    if (!adminRole) return res.status(500).json({ message: "Admin role not found" });
+    const managerRole = await prisma.role.findFirst({ where: { roleName: "Manager" } });
+    if (!managerRole) return res.status(500).json({ message: "Manager role not found" });
+
+    const deptResult = await resolveDepartmentId(departmentId);
+    if (deptResult.error) return res.status(400).json({ message: deptResult.error });
+
+    const managerResult = await resolveManagerId(managerId);
+    if (managerResult.error) return res.status(400).json({ message: managerResult.error });
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -200,42 +312,115 @@ exports.createAdmin = async (req, res) => {
           email: email.trim().toLowerCase(),
           phone: phone?.trim() || "",
           password: hashedPassword,
-          role: { connect: { id: adminRole.id } },
+          roleId: managerRole.id,
+          departmentId: deptResult.provided ? deptResult.value : undefined,
+          managerId: managerResult.provided ? managerResult.value : undefined,
+          designation: designation?.trim() || null,
+          location: location?.trim() || null,
         },
       });
-      const adminCount = await tx.user.count({ where: { role: { roleName: "Admin" } } });
-      const employeeId = `ADMIN-${String(adminCount).padStart(3, "0")}`;
+      const managerCount = await tx.user.count({ where: { role: { roleName: "Manager" } } });
+      const employeeId = `MGR-${String(managerCount).padStart(3, "0")}`;
       return tx.user.update({ where: { id: created.id }, data: { employeeId } });
     });
 
     res.status(201).json({
-      message: "Admin created successfully",
+      message: "Manager created successfully",
       user: { id: user.id, employeeId: user.employeeId, name: user.name, email: user.email, phone: user.phone },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to create admin" });
+    res.status(500).json({ message: "Failed to create manager" });
   }
 };
 
-exports.deleteAdmin = async (req, res) => {
+exports.updateManager = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid admin ID" });
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid manager ID" });
+
+    const { name, email, phone, password, departmentId, managerId, designation, location } = req.body;
 
     const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
-    if (!user) return res.status(404).json({ message: "Admin not found" });
+    if (!user) return res.status(404).json({ message: "Manager not found" });
+    if (user.role?.roleName !== "Manager") return res.status(403).json({ message: "Can only edit manager accounts" });
+
+    const updateData = {};
+
+    if (name !== undefined) {
+      const trimmed = name.trim();
+      if (!trimmed) return res.status(400).json({ message: "Name cannot be empty" });
+      updateData.name = trimmed;
+    }
+
+    if (email !== undefined) {
+      const trimmed = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) return res.status(400).json({ message: "Invalid email address" });
+      const existing = await prisma.user.findFirst({ where: { email: trimmed, NOT: { id } } });
+      if (existing) return res.status(409).json({ message: "Email already in use" });
+      updateData.email = trimmed;
+    }
+
+    if (phone !== undefined) {
+      updateData.phone = phone.trim();
+    }
+
+    if (designation !== undefined) {
+      updateData.designation = designation?.trim() || null;
+    }
+
+    if (location !== undefined) {
+      updateData.location = location?.trim() || null;
+    }
+
+    if (password !== undefined && password.trim()) {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 characters with uppercase, lowercase and a number" });
+      }
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    const deptResult = await resolveDepartmentId(departmentId);
+    if (deptResult.error) return res.status(400).json({ message: deptResult.error });
+    if (deptResult.provided) updateData.departmentId = deptResult.value;
+
+    const managerResult = await resolveManagerId(managerId);
+    if (managerResult.error) return res.status(400).json({ message: managerResult.error });
+    if (managerResult.provided) updateData.managerId = managerResult.value;
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: { id: true, name: true, email: true, phone: true, employeeId: true },
+    });
+
+    res.status(200).json({ message: "Manager updated successfully", user: updated });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to update manager" });
+  }
+};
+
+exports.deleteManager = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid manager ID" });
+
+    const user = await prisma.user.findUnique({ where: { id }, include: { role: true } });
+    if (!user) return res.status(404).json({ message: "Manager not found" });
 
     if (id === req.user.id) return res.status(403).json({ message: "Cannot delete your own account" });
 
-    if (user.role?.roleName !== "Admin") return res.status(403).json({ message: "Cannot delete this account" });
+    if (user.role?.roleName !== "Manager") return res.status(403).json({ message: "Cannot delete this account" });
 
     await prisma.user.delete({ where: { id } });
 
-    res.status(200).json({ message: "Admin deleted successfully" });
+    res.status(200).json({ message: "Manager deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to delete admin" });
+    res.status(500).json({ message: "Failed to delete manager" });
   }
 };
 
@@ -262,6 +447,10 @@ exports.deleteEmployee = async (req, res) => {
 
     if (user.role?.roleName !== "Employee") {
       return res.status(403).json({ message: "Cannot delete admin accounts" });
+    }
+
+    if (req.user.role === "Manager" && user.managerId !== req.user.id) {
+      return res.status(404).json({ message: "Employee not found" });
     }
 
     await prisma.user.delete({ where: { id } });

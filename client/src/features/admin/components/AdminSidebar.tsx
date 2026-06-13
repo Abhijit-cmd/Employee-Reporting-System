@@ -7,17 +7,26 @@ import {
   IconSettings,
   IconHelpCircle,
   IconX,
+  IcoShield,
+  IconAward,
+  IconTarget,
 } from '../../shared/icons'
 import { APP_VERSION } from '../../../config'
+import { getStoredUser, isLeadership } from '../../../lib/auth'
 
 const navItems = [
   { id: 'dashboard',       label: 'Dashboard',       section: 'MANAGEMENT' },
   { id: 'employees',       label: 'Employees',        section: 'MANAGEMENT' },
   { id: 'reports',         label: 'Reports',          section: 'MANAGEMENT' },
   { id: 'targets',         label: 'Targets',          section: 'MANAGEMENT' },
+  { id: 'yearly-targets',  label: 'Yearly Targets',   section: 'MANAGEMENT' },
   { id: 'announcements',   label: 'Announcements',    section: 'MANAGEMENT' },
+  { id: 'raise-appraisal',     label: 'Raise Appraisal',    section: 'MANAGEMENT' },
+  { id: 'appraisals-raised',   label: 'Appraisals Raised',  section: 'MANAGEMENT' },
+  { id: 'my-appraisals',        label: 'My Appraisals',     section: 'MANAGEMENT', managerOnly: true },
   { id: 'analytics',       label: 'Analytics',        section: 'ANALYTICS' },
   { id: 'settings',        label: 'Profile',          section: 'SYSTEM' },
+  { id: 'leadership-settings', label: 'Org Settings', section: 'SYSTEM', leadershipOnly: true },
 ]
 
 function NavIcon({ id }: { id: string }) {
@@ -34,6 +43,14 @@ function NavIcon({ id }: { id: string }) {
       return <IconBarChart />
     case 'settings':
       return <IconSettings />
+    case 'leadership-settings':
+      return <IcoShield />
+    case 'yearly-targets':
+      return <IconTarget />
+    case 'raise-appraisal':
+    case 'appraisals-raised':
+    case 'my-appraisals':
+      return <IconAward />
     default:
       return <IconDashboard />
   }
@@ -48,6 +65,7 @@ interface Props {
 
 export default function AdminSidebar({ active, onNav, open = false, onClose }: Props) {
   const sections = ['MANAGEMENT', 'ANALYTICS', 'SYSTEM']
+  const isLeader = isLeadership(getStoredUser())
 
   return (
     <aside className={`sidebar${open ? ' mobile-open' : ''}`}>
@@ -59,7 +77,7 @@ export default function AdminSidebar({ active, onNav, open = false, onClose }: P
       </div>
       <nav className="sidebar-nav">
         {sections.map((section) => {
-          const items = navItems.filter((n) => n.section === section)
+          const items = navItems.filter((n) => n.section === section && (!n.leadershipOnly || isLeader) && (!n.managerOnly || !isLeader))
           if (!items.length) return null
           return (
             <div key={section}>

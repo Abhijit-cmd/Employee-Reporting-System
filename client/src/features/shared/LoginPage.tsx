@@ -192,7 +192,7 @@ export default function LoginPage({ portal = 'employee' }: Props) {
               {portal === 'admin' ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 22, height: 22 }}><IcoShield /></span>
-                  Super Admin Login
+                  Management Login
                 </span>
               ) : (
                 'Login to Your Account'

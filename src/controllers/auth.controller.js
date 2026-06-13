@@ -2,6 +2,7 @@ const prisma = require("../prisma/prismaClient");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { getPermissionKeysForRole } = require("../utils/permissions");
 
 const errorResponse = (res, message, status) => res.status(status).json({ message });
 
@@ -22,18 +23,19 @@ exports.loginUser = async (req, res) => {
     if (!isMatch) return errorResponse(res, "Invalid credentials", 401);
     if (!user.role) return errorResponse(res, "User role not found", 500);
 
-    // "Admin" portal login covers both Admin and SuperAdmin accounts;
+    // "Admin" portal login covers both Manager and Leadership accounts;
     // "Employee" portal login covers Employee accounts only.
     const dbRole = user.role.roleName.toLowerCase();
     const requestedRole = role.toLowerCase();
     const roleMatches =
       requestedRole === "admin"
-        ? dbRole === "admin" || dbRole === "superadmin"
+        ? dbRole === "manager" || dbRole === "leadership"
         : dbRole === requestedRole;
 
     if (!roleMatches) return errorResponse(res, "Invalid role selected", 403);
 
-    const accessToken = jwt.sign({ id: user.id, role: user.role.roleName }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const permissions = await getPermissionKeysForRole(user.roleId);
+    const accessToken = jwt.sign({ id: user.id, role: user.role.roleName, permissions }, process.env.JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = jwt.sign({ id: user.id, nonce: crypto.randomUUID() }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
     await prisma.refreshToken.create({
@@ -79,7 +81,8 @@ exports.refreshAccessToken = async (req, res) => {
 
     await prisma.refreshToken.delete({ where: { token: refreshToken } });
 
-    const accessToken = jwt.sign({ id: user.id, role: user.role.roleName }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const permissions = await getPermissionKeysForRole(user.roleId);
+    const accessToken = jwt.sign({ id: user.id, role: user.role.roleName, permissions }, process.env.JWT_SECRET, { expiresIn: "15m" });
     const newRefreshToken = jwt.sign({ id: user.id, nonce: crypto.randomUUID() }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
     await prisma.refreshToken.create({

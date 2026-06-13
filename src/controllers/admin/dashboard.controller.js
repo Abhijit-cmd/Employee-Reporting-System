@@ -1,4 +1,5 @@
 const prisma = require("../../prisma/prismaClient");
+const { teamFilter } = require("../../utils/scope");
 
 const successResponse = (res, data, status = 200) =>
   res.status(status).json({ success: true, data });
@@ -10,14 +11,16 @@ exports.getAnalytics = async (req, res) => {
   try {
     const [reports, totalEmployees, targets] = await Promise.all([
       prisma.report.findMany({
+        where: { user: teamFilter(req.user) },
         include: {
           user: { select: { name: true, employeeId: true } },
           reportStatus: true,
         },
         orderBy: { mmyyyy: "asc" },
       }),
-      prisma.user.count({ where: { role: { roleName: "Employee" } } }),
+      prisma.user.count({ where: { role: { roleName: "Employee" }, ...teamFilter(req.user) } }),
       prisma.target.findMany({
+        where: { employee: teamFilter(req.user) },
         include: { employee: { select: { name: true } } },
       }),
     ]);
@@ -68,10 +71,10 @@ exports.getAnalytics = async (req, res) => {
 exports.getDashboardSummary = async (req, res) => {
   try {
     const [totalEmployees, totalReports, reportsByStatus] = await Promise.all([
-      prisma.user.count({ where: { role: { roleName: "Employee" } } }),
-      prisma.report.count(),
+      prisma.user.count({ where: { role: { roleName: "Employee" }, ...teamFilter(req.user) } }),
+      prisma.report.count({ where: { user: teamFilter(req.user) } }),
       prisma.reportStatus.findMany({
-        include: { _count: { select: { reports: true } } },
+        include: { _count: { select: { reports: { where: { user: teamFilter(req.user) } } } } },
       }),
     ]);
 
@@ -95,6 +98,7 @@ exports.getDashboardSummary = async (req, res) => {
 exports.getEmployeeTargetAchievements = async (req, res) => {
   try {
     const targets = await prisma.target.findMany({
+      where: { employee: teamFilter(req.user) },
       include: { employee: { select: { name: true } } },
     });
 
